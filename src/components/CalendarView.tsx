@@ -23,6 +23,7 @@ import { User } from 'firebase/auth';
 interface CalendarViewProps {
   data: DatabaseState;
   onRefresh: () => void;
+  theme?: 'light' | 'dark';
 }
 
 interface CalendarEvent {
@@ -41,7 +42,7 @@ interface CalendarEvent {
   htmlLink?: string;
 }
 
-export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
+export default function CalendarView({ data, onRefresh, theme = 'light' }: CalendarViewProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -94,7 +95,6 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
 
       if (!res.ok) {
         if (res.status === 401) {
-          // Token expired, log out
           handleLogout();
           throw new Error('Sua credencial do Google expirou. Por favor, conecte-se novamente.');
         }
@@ -111,7 +111,6 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
     }
   };
 
-  // Trigger loading events on token resolution
   useEffect(() => {
     if (token) {
       fetchCalendarEvents(token);
@@ -158,7 +157,6 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
       return;
     }
 
-    // Explicit User Confirmation for Mutation
     const confirmMessage = `Deseja agendar "${title}" na sua Agenda do Google de ${startDate} ${startTime} até ${endDate} ${endTime}?`;
     if (!window.confirm(confirmMessage)) {
       return;
@@ -190,7 +188,6 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
         throw new Error('Falha ao salvar evento no Google Calendar.');
       }
 
-      // Clear fields
       setTitle('');
       setDescription('');
       setLocation('');
@@ -199,7 +196,6 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
       setEndDate('');
       setEndTime('');
 
-      // Refresh list
       await fetchCalendarEvents(token);
     } catch (err: any) {
       console.error('Failed to create event:', err);
@@ -213,7 +209,6 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
   const handleDeleteEvent = async (eventId: string, eventSummary: string) => {
     if (!token) return;
 
-    // Explicit User Confirmation for Destructive Operation
     const confirmed = window.confirm(
       `Tem certeza que deseja DELETAR o compromisso "${eventSummary || 'Sem título'}" da sua Google Agenda? Esta ação é irreversível.`
     );
@@ -229,7 +224,6 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
         throw new Error('Não foi possível remover o compromisso do servidor.');
       }
 
-      // Refresh list
       await fetchCalendarEvents(token);
     } catch (err: any) {
       console.error('Delete event error:', err);
@@ -237,7 +231,6 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
     }
   };
 
-  // Bulk sync logic for active local reminders
   const activeLocalReminders = data.reminders.filter(r => r.status === 'active');
 
   const handleToggleReminderSelection = (id: string) => {
@@ -249,21 +242,17 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
   const handleSyncRemindersToGoogle = async () => {
     if (!token || selectedReminders.length === 0) return;
 
-    // Display selected titles
     const syncingTasks = activeLocalReminders.filter(r => selectedReminders.includes(r.id));
     const listSummary = syncingTasks.map(t => `- ${t.titulo}`).join('\n');
 
-    // Confirm write mutation
     const confirmMessage = `Você deseja sincronizar/exportar as seguintes tarefas (${syncingTasks.length}) para seu Google Calendar?\n\n${listSummary}\n\nEles serão programados como compromissos de 1 hora a partir do fuso corrente cadastrado de cada um.`;
     if (!window.confirm(confirmMessage)) return;
 
     setSyncingReminders(true);
     try {
       for (const item of syncingTasks) {
-        // Parse date
         let startIso: string;
         try {
-          // If formatting is directly standard ISO etc or YYYY-MM-DD HH:mm
           const cleanDateStr = item.data_hora.replace(' ', 'T');
           const dt = new Date(cleanDateStr);
           if (isNaN(dt.getTime())) {
@@ -271,14 +260,13 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
           }
           startIso = dt.toISOString();
         } catch {
-          // Fallback to today + 1 hour if unparseable
           const fallback = new Date();
           fallback.setHours(fallback.getHours() + 1);
           startIso = fallback.toISOString();
         }
 
         const endDt = new Date(startIso);
-        endDt.setHours(endDt.getHours() + 1); // 1-hour interval default
+        endDt.setHours(endDt.getHours() + 1);
         const endIso = endDt.toISOString();
 
         const eventBody = {
@@ -299,13 +287,9 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
 
         if (!res.ok) {
           console.error(`Falha ao exportar reminder "${item.titulo}"`);
-        } else {
-          // Update the localized reminder status via API if preferred,
-          // but we can just report complete.
         }
       }
 
-      // Clear selection
       setSelectedReminders([]);
       alert(`Sincronização concluída com sucesso! ${syncingTasks.length} lembretes importados.`);
       await fetchCalendarEvents(token);
@@ -329,11 +313,40 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
     return 'Sem data';
   };
 
+  // Dynamic theme variables
+  const darkColors = {
+    cardBg: 'bg-[#111318] border-[#1d202a] text-slate-100',
+    titleText: 'text-white',
+    subText: 'text-slate-400',
+    mutedText: 'text-gray-500',
+    divider: 'border-[#1b1c25]',
+    inputBg: 'bg-[#090a0d] border-[#202330] text-white placeholder-gray-650',
+    rowBg: 'bg-[#090a0d] border-[#1d202a] hover:border-blue-500/20 text-slate-200',
+    buttonSecondary: 'bg-[#141620] border-[#1e202e] text-gray-400 hover:text-white hover:border-gray-600',
+    deleteButton: 'bg-[#141620] border-[#1e202e] text-gray-400 hover:text-rose-400 hover:border-rose-950',
+    bannerBg: 'bg-[#0d0e11] border-[#1d202a]'
+  };
+
+  const lightColors = {
+    cardBg: 'bg-white border-slate-200 text-slate-800',
+    titleText: 'text-slate-800',
+    subText: 'text-slate-500',
+    mutedText: 'text-slate-400',
+    divider: 'border-slate-100',
+    inputBg: 'bg-slate-50 border-slate-200 text-slate-850 placeholder-slate-400',
+    rowBg: 'bg-slate-50 border-slate-200 hover:border-blue-500/20 text-slate-700',
+    buttonSecondary: 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-850 hover:border-slate-350',
+    deleteButton: 'bg-slate-100 border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-300',
+    bannerBg: 'bg-slate-50 border-slate-200'
+  };
+
+  const c = theme === 'dark' ? darkColors : lightColors;
+
   if (loading) {
     return (
-      <div className="p-12 text-center flex flex-col items-center justify-center gap-4 bg-[#111318] border border-[#1e202a] rounded-xl">
+      <div className={`p-12 text-center flex flex-col items-center justify-center gap-4 rounded-xl border transition-colors ${c.cardBg}`}>
         <div className="w-6 h-6 border-2 border-t-blue-500 border-gray-700 rounded-full animate-spin"></div>
-        <p className="text-xs font-mono text-gray-400">Verificando credenciais do ecossistema Google...</p>
+        <p className={`text-xs font-mono ${c.subText}`}>Verificando credenciais do ecossistema Google...</p>
       </div>
     );
   }
@@ -342,27 +355,26 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
   if (!token || !user) {
     return (
       <div className="space-y-6">
-        <div className="p-6 bg-[#111318] border border-[#1d202a] rounded-xl shadow-lg">
+        <div className={`p-6 border rounded-xl shadow-lg transition-colors ${c.cardBg}`}>
           <div>
             <span className="text-[10px] font-mono font-bold tracking-widest text-[#4285F4] uppercase">Google Integration Workspace</span>
-            <h2 className="text-xl font-bold text-white tracking-tight mt-1">Conecte sua Google Agenda</h2>
-            <p className="text-xs text-gray-400 mt-1 max-w-2xl leading-relaxed">
+            <h2 className={`text-xl font-bold tracking-tight mt-1 ${c.titleText}`}>Conecte sua Google Agenda</h2>
+            <p className={`text-xs mt-1 max-w-2xl leading-relaxed ${c.subText}`}>
               Vincule seu calendário para que as inteligências e faturamentos agendados no Telegram sincronizem em tempo real com sua agenda.
             </p>
           </div>
         </div>
 
-        <div className="p-12 bg-[#0d0e11] border border-[#1d202a] rounded-xl flex flex-col items-center text-center space-y-6">
+        <div className={`p-12 border rounded-xl flex flex-col items-center text-center space-y-6 transition-colors ${c.bannerBg}`}>
           <CalendarIcon className="w-16 h-16 text-[#4285F4] stroke-[1.2] opacity-80" />
           <div className="space-y-2 max-w-md">
-            <h3 className="text-sm font-semibold text-white">Pronto para Integrar</h3>
-            <p className="text-xs text-gray-400 leading-relaxed">
-              Ao se conectar com sua conta Google, você poderá consultar compromissos em tempo real, criar novos alarmes e sincronizar automaticamente seus lembretes locais.
+            <h3 className={`text-sm font-semibold ${c.titleText}`}>Pronto para Integrar</h3>
+            <p className={`text-xs leading-relaxed ${c.subText}`}>
+              Ao se conectar com sua conta Google, você poderá consultar compromissos em tempo real, criar novos compromissos e sincronizar automaticamente seus lembretes locais.
             </p>
           </div>
 
           <div>
-            {/* Standard "Sign in with Google" button */}
             <button 
               onClick={handleLogin}
               className="gsi-material-button cursor-pointer focus:outline-none"
@@ -399,7 +411,7 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
   return (
     <div className="space-y-6">
       {/* Top Welcome Authenticated Box */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-[#111318] border border-[#1d202a] rounded-xl shadow-md">
+      <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 border rounded-xl shadow-md transition-colors ${c.cardBg}`}>
         <div className="flex items-center gap-3">
           {user.photoURL ? (
             <img src={user.photoURL} alt={user.displayName || 'User'} className="w-10 h-10 rounded-full border border-blue-500/30" referrerPolicy="no-referrer" />
@@ -410,8 +422,8 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
           )}
           <div>
             <span className="text-[9px] font-mono font-bold tracking-widest text-blue-400 uppercase">Google Agenda Ativa</span>
-            <h2 className="text-base font-bold text-white tracking-tight">{user.displayName}</h2>
-            <p className="text-[10px] text-gray-500 font-mono">{user.email}</p>
+            <h2 className={`text-base font-bold tracking-tight ${c.titleText}`}>{user.displayName}</h2>
+            <p className={`text-[10px] font-mono ${c.subText}`}>{user.email}</p>
           </div>
         </div>
 
@@ -419,24 +431,24 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
           <button 
             onClick={() => fetchCalendarEvents(token)}
             disabled={syncingEvents}
-            className="p-2 border border-[#1e202a] hover:bg-[#202330] rounded-lg text-gray-400 hover:text-white transition cursor-pointer"
+            className={`p-2 border rounded-lg transition cursor-pointer ${c.buttonSecondary}`}
             title="Recarregar eventos"
           >
             <RefreshCw className={`w-4 h-4 ${syncingEvents ? 'animate-spin' : ''}`} />
           </button>
           <button 
             onClick={handleLogout}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-950/40 border border-red-900/20 hover:border-red-500 text-red-400 hover:text-white rounded-lg transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-rose-950/20 border border-rose-900/20 hover:border-rose-500 text-rose-500 hover:text-white rounded-lg transition cursor-pointer select-none font-bold uppercase tracking-wider"
           >
             <LogOut className="w-3.5 h-3.5" />
-            <span className="font-mono text-[10px] uppercase font-bold">Desconectar</span>
+            <span className="font-mono text-[10px] font-bold">Desconectar</span>
           </button>
         </div>
       </div>
 
       {errorMsg && (
-        <div className="bg-red-950/30 border border-red-500/20 text-red-400 p-4 rounded-xl flex items-start gap-2.5 text-xs">
-          <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-red-500" />
+        <div className="bg-rose-950/30 border border-rose-500/20 text-rose-400 p-4 rounded-xl flex items-start gap-2.5 text-xs">
+          <AlertCircle className="w-4.5 h-4.5 shrink-0 mt-0.5 text-rose-500" />
           <div>
             <span className="font-bold">Ocorreu um problema: </span>
             {errorMsg}
@@ -448,12 +460,12 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
 
         {/* Left: Agenda timeline list (3 cols) */}
-        <div className="col-span-1 lg:col-span-3 bg-[#111318] border border-[#1e202a] rounded-xl p-5 flex flex-col justify-between">
+        <div className={`col-span-1 lg:col-span-3 border rounded-xl p-5 flex flex-col justify-between transition-colors ${c.cardBg}`}>
           <div>
-            <div className="flex items-center justify-between border-b border-[#1b1c25] pb-3 mb-4">
+            <div className={`flex items-center justify-between border-b pb-3 mb-4 ${c.divider}`}>
               <div className="flex items-center gap-2">
                 <CalendarIcon className="w-4 h-4 text-blue-500" />
-                <h3 className="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider">Compromissos Agendados</h3>
+                <h3 className={`text-xs font-mono font-bold uppercase tracking-wider ${c.titleText}`}>Compromissos Agendados</h3>
               </div>
               <span className="text-[9px] font-mono text-blue-400 bg-blue-950/40 px-2 py-0.5 rounded border border-blue-800/20">
                 Primary API V3
@@ -462,37 +474,37 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
 
             {syncingEvents ? (
               <div className="py-24 text-center space-y-3">
-                <div className="w-6 h-6 border-2 border-t-blue-500 border-gray-700 rounded-full animate-spin mx-auto mr-auto ml-auto"></div>
-                <span className="text-xs font-mono text-gray-500 block">Buscando agenda no servidor Google...</span>
+                <div className="w-6 h-6 border-2 border-t-blue-500 border-gray-700 rounded-full animate-spin mx-auto"></div>
+                <span className={`text-xs font-mono block ${c.subText}`}>Buscando agenda no servidor Google...</span>
               </div>
             ) : events.length === 0 ? (
-              <div className="py-20 text-center text-xs text-gray-500 font-mono space-y-1">
+              <div className={`py-20 text-center text-xs font-mono space-y-1 ${c.subText}`}>
                 <Info className="w-5 h-5 text-gray-700 mx-auto" />
                 <p>Nenhum compromisso pendente nos próximos dias.</p>
-                <p className="text-[10px] text-gray-600">Use o painel lateral para criar ou agendar lembretes.</p>
+                <p className="text-[10px]">Use o painel lateral para criar ou agendar lembretes.</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-[480px] overflow-y-auto custom-scrollbar pr-1">
                 {events.map((ev) => (
                   <div 
                     key={ev.id}
-                    className="p-3.5 bg-[#090a0d] border border-[#1d202a] hover:border-blue-500/20 rounded-xl transition group duration-200 flex items-start justify-between gap-3 shadow-inner"
+                    className={`p-3.5 border rounded-xl transition group duration-200 flex items-start justify-between gap-3 shadow-inner ${c.rowBg}`}
                   >
                     <div className="space-y-1 truncate">
-                      <h4 className="text-xs font-bold text-gray-200 truncate flex items-center gap-1.5">
+                      <h4 className={`text-xs font-bold truncate flex items-center gap-1.5 ${c.titleText}`}>
                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block shrink-0"></span>
                         {ev.summary || 'Sem título'}
                       </h4>
                       {ev.description && (
-                        <p className="text-[10px] text-gray-500 truncate max-w-sm">{ev.description}</p>
+                        <p className={`text-[10px] truncate max-w-sm ${c.subText}`}>{ev.description}</p>
                       )}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-[10px] text-gray-400 font-mono">
-                        <span className="flex items-center gap-1 text-blue-400">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-[10px] font-mono">
+                        <span className="flex items-center gap-1 text-blue-500 font-semibold">
                           <Clock className="w-3 h-3" />
                           {getFriendlyTime(ev.start?.dateTime, ev.start?.date)}
                         </span>
                         {ev.location && (
-                          <span className="flex items-center gap-1 text-gray-500 truncate max-w-[200px]">
+                          <span className={`flex items-center gap-1 truncate max-w-[200px] ${c.subText}`}>
                             <MapPin className="w-3 h-3" />
                             {ev.location}
                           </span>
@@ -506,7 +518,7 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
                           href={ev.htmlLink} 
                           target="_blank" 
                           rel="noreferrer" 
-                          className="p-1.5 text-gray-500 hover:text-white bg-[#141620] border border-[#1e202e] hover:border-gray-600 rounded cursor-pointer transition"
+                          className={`p-1.5 border rounded cursor-pointer transition ${c.buttonSecondary}`}
                           title="Melhorar/Editar no Google Agenda"
                         >
                           <ExternalLink className="w-3 h-3" />
@@ -514,7 +526,7 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
                       )}
                       <button 
                         onClick={() => handleDeleteEvent(ev.id, ev.summary)}
-                        className="p-1.5 text-gray-500 hover:text-red-400 bg-[#141620] border border-[#1e202e] hover:border-red-950 rounded cursor-pointer transition"
+                        className={`p-1.5 border rounded cursor-pointer transition ${c.deleteButton}`}
                         title="Deletar compromisso"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -526,7 +538,7 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
             )}
           </div>
 
-          <div className="text-[10px] text-gray-500 font-mono mt-4 pt-3 border-t border-[#1a1c25]">
+          <div className={`text-[10px] font-mono mt-4 pt-3 border-t ${c.divider} ${c.subText}`}>
             💡 Alinhamento temporal concluído. Os compromissos acima herdam seu timezone local.
           </div>
         </div>
@@ -535,27 +547,27 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
         <div className="col-span-1 lg:col-span-2 space-y-4">
           
           {/* Quick Create Event Form */}
-          <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-5">
-            <h3 className="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider border-b border-[#1b1c25] pb-2.5 mb-3">
+          <div className={`border rounded-xl p-5 transition-colors ${c.cardBg}`}>
+            <h3 className={`text-xs font-mono font-bold uppercase tracking-wider border-b pb-2.5 mb-3 ${c.divider} ${c.titleText}`}>
               Novo Compromisso
             </h3>
             
-            <form onSubmit={handleCreateEvent} className="space-y-3.5">
+            <form onSubmit={handleCreateEvent} className="space-y-3.5 text-slate-800">
               <div className="space-y-1">
-                <label className="text-[9px] text-gray-400 font-mono uppercase font-semibold">Título do Compromisso *</label>
+                <label className={`text-[9px] font-mono uppercase font-semibold block ${c.subText}`}>Título do Compromisso *</label>
                 <input 
                   type="text" 
                   required
                   placeholder="Ex: Alinhamento de Investimentos" 
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full bg-[#090a0d] border border-[#202330] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className={`w-full focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none transition-colors ${c.inputBg}`}
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-[9px] text-gray-400 font-mono uppercase font-semibold">Data Início *</label>
+                  <label className={`text-[9px] font-mono uppercase font-semibold block ${c.subText}`}>Data Início *</label>
                   <input 
                     type="date" 
                     required
@@ -564,70 +576,70 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
                       setStartDate(e.target.value);
                       if (!endDate) setEndDate(e.target.value);
                     }}
-                    className="w-full bg-[#090a0d] border border-[#202330] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    className={`w-full focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none font-mono transition-colors ${c.inputBg}`}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] text-gray-400 font-mono uppercase font-semibold">Horário Início *</label>
+                  <label className={`text-[9px] font-mono uppercase font-semibold block ${c.subText}`}>Horário Início *</label>
                   <input 
                     type="time" 
                     required
                     value={startTime}
                     onChange={(e) => setStartTime(e.target.value)}
-                    className="w-full bg-[#090a0d] border border-[#202330] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    className={`w-full focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none font-mono transition-colors ${c.inputBg}`}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <label className="text-[9px] text-gray-400 font-mono uppercase font-semibold">Data Fim *</label>
+                  <label className={`text-[9px] font-mono uppercase font-semibold block ${c.subText}`}>Data Fim *</label>
                   <input 
                     type="date" 
                     required
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-[#090a0d] border border-[#202330] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    className={`w-full focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none font-mono transition-colors ${c.inputBg}`}
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] text-gray-400 font-mono uppercase font-semibold">Horário Fim *</label>
+                  <label className={`text-[9px] font-mono uppercase font-semibold block ${c.subText}`}>Horário Fim *</label>
                   <input 
                     type="time" 
                     required
                     value={endTime}
                     onChange={(e) => setEndTime(e.target.value)}
-                    className="w-full bg-[#090a0d] border border-[#202330] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                    className={`w-full focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none font-mono transition-colors ${c.inputBg}`}
                   />
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[9px] text-gray-400 font-mono uppercase font-semibold">Local (Opcional)</label>
+                <label className={`text-[9px] font-mono uppercase font-semibold block ${c.subText}`}>Local (Opcional)</label>
                 <input 
                   type="text" 
                   placeholder="Ex: Google Meet, Escritório..." 
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full bg-[#090a0d] border border-[#202330] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className={`w-full focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none transition-colors ${c.inputBg}`}
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[9px] text-gray-400 font-mono uppercase font-semibold">Descrição (Opcional)</label>
+                <label className={`text-[9px] font-mono uppercase font-semibold block ${c.subText}`}>Descrição (Opcional)</label>
                 <textarea 
                   rows={2}
                   placeholder="Compromisso importado do LifeOS..." 
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-[#090a0d] border border-[#202330] rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-blue-500"
+                  className={`w-full focus:border-blue-500 rounded-lg p-2.5 text-xs focus:outline-none transition-colors ${c.inputBg}`}
                 />
               </div>
 
               <button 
                 type="submit"
                 disabled={submittingEvent}
-                className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800/25 text-white py-2 rounded-lg font-bold text-xs transition cursor-pointer select-none flex items-center justify-center gap-1.5"
+                className="w-full bg-blue-605 hover:bg-blue-500 disabled:bg-blue-800/25 text-white py-2 rounded-lg font-bold text-xs transition cursor-pointer select-none flex items-center justify-center gap-1.5 uppercase"
               >
                 <Plus className="w-4 h-4" />
                 {submittingEvent ? 'Agendando...' : 'Criar na Agenda'}
@@ -636,21 +648,23 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
           </div>
 
           {/* Sincronização de Lembretes Locais */}
-          <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-5">
-            <h3 className="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider border-b border-[#1b1c25] pb-2.5 mb-3 flex items-center justify-between">
+          <div className={`border rounded-xl p-5 transition-colors ${c.cardBg}`}>
+            <h3 className={`text-xs font-mono font-bold uppercase tracking-wider border-b pb-2.5 mb-3 flex items-center justify-between ${c.divider} ${c.titleText}`}>
               <span>Sincronizar Lembretes</span>
-              <span className="text-[9px] bg-amber-950/40 text-amber-500 border border-amber-800/10 px-1.5 py-0.5 rounded">
+              <span className={`text-[9px] px-1.5 py-0.5 rounded border ${
+                theme === 'dark' ? 'bg-amber-955/40 text-amber-500 border-amber-900/10' : 'bg-amber-50 text-amber-600 border-amber-200'
+              }`}>
                 Ativos ({activeLocalReminders.length})
               </span>
             </h3>
 
             {activeLocalReminders.length === 0 ? (
-              <p className="text-[11px] text-gray-500 leading-relaxed py-2">
+              <p className={`text-[11px] leading-relaxed py-2 ${c.subText}`}>
                 Nenhum lembrete do LifeOS AI está ativo no momento para exportar.
               </p>
             ) : (
               <div className="space-y-3">
-                <p className="text-[11px] text-gray-400 leading-relaxed">
+                <p className={`text-[11px] leading-relaxed ${c.subText}`}>
                   Selecione os lembretes ou compromissos gerados via Telegram para sincronizar imediatamente com sua conta Google:
                 </p>
 
@@ -661,20 +675,20 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
                       <div 
                         key={rem.id}
                         onClick={() => handleToggleReminderSelection(rem.id)}
-                        className={`p-2.5 rounded-lg border text-xs flex items-center gap-2.5 cursor-pointer transition ${
+                        className={`p-2.5 rounded-lg border text-xs flex items-center gap-2.5 cursor-pointer transition select-none ${
                           selected 
-                            ? 'bg-blue-950/30 border-blue-500/30' 
-                            : 'bg-[#090a0d] border-[#1d202d]'
+                            ? 'bg-blue-500/10 border-blue-500/30' 
+                            : c.inputBg
                         }`}
                       >
                         <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${
-                          selected ? 'bg-blue-500 border-blue-500' : 'border-gray-700'
+                          selected ? 'bg-blue-500 border-blue-500' : 'border-slate-300 dark:border-slate-700'
                         }`}>
                           {selected && <Check className="w-3 h-3 text-white" />}
                         </div>
                         <div className="truncate">
-                          <p className="font-semibold text-gray-200 truncate">{rem.titulo}</p>
-                          <p className="text-[9px] text-gray-500 font-mono font-semibold">{rem.data_hora}</p>
+                          <p className={`font-bold truncate ${selected ? 'text-blue-500' : c.titleText}`}>{rem.titulo}</p>
+                          <p className={`text-[9px] font-mono font-semibold ${c.subText}`}>{rem.data_hora}</p>
                         </div>
                       </div>
                     );
@@ -684,7 +698,7 @@ export default function CalendarView({ data, onRefresh }: CalendarViewProps) {
                 <button 
                   onClick={handleSyncRemindersToGoogle}
                   disabled={selectedReminders.length === 0 || syncingReminders}
-                  className="w-full py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-amber-950/40 text-white disabled:text-gray-500 rounded-lg font-bold text-xs transition cursor-pointer select-none flex items-center justify-center gap-1.5"
+                  className="w-full py-2 bg-amber-600 hover:bg-amber-500 disabled:bg-amber-950/40 text-white disabled:text-gray-500 rounded-lg font-bold text-xs transition cursor-pointer select-none flex items-center justify-center gap-1.5 uppercase"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   {syncingReminders ? 'Sincronizando...' : `Sincronizar Selecionados (${selectedReminders.length})`}

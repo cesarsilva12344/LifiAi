@@ -590,7 +590,7 @@ async function handlePersonas(): Promise<CommandResult> {
 
 async function handlePerfil(): Promise<CommandResult> {
   const profile = getProfile();
-  const response = `👤 **Perfil do Usuário (Cesaronesto)**:\n\n` +
+  const response = `👤 **Perfil do Usuário (${profile.nome})**:\n\n` +
           `🎯 **Objetivos**:\n- ${profile.objetivos.join('\n- ')}\n\n` +
           `🧠 **Interesses**:\n- ${profile.interesses.join('\n- ')}\n\n` +
           `⚙️ **Preferências**:\n- ${profile.preferencias.join('\n- ')}\n\n` +

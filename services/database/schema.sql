@@ -161,6 +161,7 @@ CREATE TABLE IF NOT EXISTS projects (
              CHECK (status IN ('planning', 'active', 'completed', 'on_hold')),
   progresso  INTEGER DEFAULT 0
              CHECK (progresso >= 0 AND progresso <= 100),
+  cliente    TEXT DEFAULT '',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

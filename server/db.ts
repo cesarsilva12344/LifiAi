@@ -79,7 +79,7 @@ Tom elegante, calmo, altamente organizado, confiável e coordenativo.`,
 ];
 
 const DEFAULT_PROFILE: UserProfile = {
-  nome: 'Cesaronesto',
+  nome: 'César',
   appName: 'LifeOS AI',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   deepseekApiKey: process.env.DEEPSEEK_API_KEY || '',
@@ -319,14 +319,14 @@ const DEFAULT_STATE: DatabaseState = {
     {
       id: 'm1',
       conteudo: 'Decidi focar toda a interface de captura do LifeOS AI no Telegram porque a barreira de fricção é zero. Mandar áudio de 20s caminhando ou colar um link é muito mais rápido que abrir um app pesado do Notion.',
-      origem: 'Telegram de Cesaronesto',
+      origem: 'Telegram de César',
       created_at: '2026-05-26T09:00:00Z',
       embedding: []
     },
     {
       id: 'm2',
       conteudo: 'Configuração chave do banco postgres no Supabase: usar índices RLS fortes de segurança e habilitar pg_vector para habilitar inteligência de memórias a qualquer momento.',
-      origem: 'Telegram de Cesaronesto',
+      origem: 'Telegram de César',
       created_at: '2026-05-24T15:30:00Z',
       embedding: []
     }

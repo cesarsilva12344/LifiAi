@@ -43,7 +43,7 @@ import { Expense, Income, Task, Reminder, Goal, Habit, Project, Note, Idea, Memo
 // Load env vars
 dotenv.config();
 
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 
 async function startServer() {
   // Initialize database (syncs from Supabase if configured)
@@ -55,7 +55,7 @@ async function startServer() {
   // In-memory/File-bound simulated Telegram Chat History
   const getTelegramHistory = () => {
     const db = readDatabase() as any;
-    const userName = db.userProfile?.nome || 'Cesaronesto';
+    const userName = db.userProfile?.nome || 'César';
     const appName = db.userProfile?.appName || 'LifeOS AI';
     const activePersona = db.personas.find((p: any) => p.ativa) || db.personas[0];
     if (!db.telegram_history) {
@@ -338,6 +338,62 @@ async function startServer() {
   //   /comandos  → Command Engine
   //   texto      → AI Router → Action Engine → AI Core (runPersona)
   // ────────────────────────────────────────────────────────────────────────
+  // ------------------------------------------------------------------------
+  // CENTRAL MESSAGING PIPELINE (Channel-independent & WhatsApp Ready)
+  // ------------------------------------------------------------------------
+  
+  interface UnifiedMessage {
+    id: string;
+    text: string;
+    senderId: string;
+    senderName: string;
+    source: 'telegram' | 'whatsapp' | 'emulator';
+  }
+
+  async function handleUnifiedMessage(msg: UnifiedMessage) {
+    const text = msg.text;
+
+    // 1. Save input to chat history
+    addTelegramHistory('user', text);
+    const history = (getTelegramHistory() as any[]).slice(-6).map((h: any) => ({
+      sender: h.sender as 'user' | 'bot',
+      text: h.text,
+    }));
+
+    // 2. Command Pipeline
+    if (isCommand(text)) {
+      const { response, handled } = await handleCommand(text, history);
+      const reply = handled ? response : `❓ Comando não reconhecido. Use /help para ver os disponíveis.`;
+      addTelegramHistory('bot', reply);
+      return {
+        response: reply,
+        classification: 'command',
+        saved: true
+      };
+    }
+
+    // 3. AI Parsing & Classification (AI Router)
+    const { intent, extracted_data, explanation, confidence } = await runRouter(text);
+
+    // 4. Database write via Action Engine
+    const actionResult = await executeFromIntent(intent, extracted_data, msg.source);
+
+    // 5. Generate contextual persona reply
+    const reply = await runPersona(text, history);
+
+    addTelegramHistory('bot', reply);
+
+    return {
+      response: reply,
+      classification: intent,
+      confidence,
+      explanation,
+      parsed_data: extracted_data,
+      saved: actionResult.success,
+    };
+  }
+
+  // Telegram Webhook Endpoint
   app.post('/api/telegram/webhook', async (req, res) => {
     try {
       const { text } = req.body;
@@ -345,43 +401,60 @@ async function startServer() {
         return res.status(400).json({ error: 'Texto não fornecido' });
       }
 
-      addTelegramHistory('user', text);
-      const history = (getTelegramHistory() as any[]).slice(-6).map((h: any) => ({
-        sender: h.sender as 'user' | 'bot',
-        text: h.text,
-      }));
+      // Map to UnifiedMessage format
+      const unifiedMsg: UnifiedMessage = {
+        id: 'tg_' + Date.now(),
+        text: text,
+        senderId: req.body.chat_id || 'tg_user',
+        senderName: req.body.username || 'Telegram User',
+        source: 'telegram'
+      };
 
-      // ── Rota 1: Comando /  ────────────────────────────────────────────
-      if (isCommand(text)) {
-        const { response, handled } = await handleCommand(text, history);
-        const reply = handled ? response : `❓ Comando não reconhecido. Use /help para ver os disponíveis.`;
-        addTelegramHistory('bot', reply);
-        return res.json({ response: reply });
+      const result = await handleUnifiedMessage(unifiedMsg);
+      res.json(result);
+
+    } catch (error: any) {
+      console.error('[Webhook Telegram] Falha:', error.message);
+      res.status(500).json({ error: 'Erro ao processar captura Telegram' });
+    }
+  });
+
+  // WhatsApp Webhook Endpoint (Ready for WhatsApp Cloud API integration in the future)
+  app.post('/api/whatsapp/webhook', async (req, res) => {
+    try {
+      // Stub integration mapping WhatsApp Cloud API format to our UnifiedMessage
+      const entry = req.body.entry?.[0];
+      const changes = entry?.changes?.[0];
+      const val = changes?.value;
+      const message = val?.messages?.[0];
+
+      const text = message?.text?.body || req.body.text; // Support testing payload
+      if (!text?.trim()) {
+        return res.json({ status: 'ignored', message: 'No text message body found' });
       }
 
-      // ── Rota 2: Captura de texto livre ───────────────────────────────
-      // Classifica intent
-      const { intent, extracted_data, explanation, confidence } = await runRouter(text);
+      const unifiedMsg: UnifiedMessage = {
+        id: message?.id || 'wa_' + Date.now(),
+        text: text,
+        senderId: message?.from || req.body.senderId || 'wa_user',
+        senderName: val?.contacts?.[0]?.profile?.name || req.body.senderName || 'WhatsApp User',
+        source: 'whatsapp'
+      };
 
-      // Salva no banco via Action Engine
-      const actionResult = await executeFromIntent(intent, extracted_data, 'telegram');
+      const result = await handleUnifiedMessage(unifiedMsg);
+      
+      // Here you would trigger standard WhatsApp API calls to send the response back:
+      // await sendWhatsAppMessage(unifiedMsg.senderId, result.response);
 
-      // Gera resposta contextual com a persona ativa
-      const reply = await runPersona(text, history);
-
-      addTelegramHistory('bot', reply);
       res.json({
-        response: reply,
-        classification: intent,
-        confidence,
-        explanation,
-        parsed_data: extracted_data,
-        saved: actionResult.success,
+        status: 'success',
+        processed: true,
+        result
       });
 
     } catch (error: any) {
-      console.error('[Webhook] Falha geral:', error.message);
-      res.status(500).json({ error: 'Erro ao processar captura' });
+      console.error('[Webhook WhatsApp] Falha:', error.message);
+      res.status(500).json({ error: 'Erro ao processar captura WhatsApp' });
     }
   });
 

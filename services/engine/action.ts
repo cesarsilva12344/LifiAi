@@ -235,6 +235,7 @@ export async function createProject(
       descricao: data.descricao || '',
       status: data.status || 'planning',
       progresso: 0,
+      cliente: data.cliente || '',
     };
     db.projects.push(entity);
     writeDatabase(db);
@@ -376,7 +377,7 @@ export async function checkHabit(id: string): Promise<ActionResult<Habit>> {
 
 export async function updateProject(
   id: string,
-  data: Partial<Pick<Project, 'nome' | 'descricao' | 'status' | 'progresso'>>
+  data: Partial<Project>
 ): Promise<ActionResult<Project>> {
   try {
     const db = readDatabase();

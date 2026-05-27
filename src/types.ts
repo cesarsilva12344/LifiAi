@@ -61,6 +61,7 @@ export interface Project {
   descricao: string;
   status: 'planning' | 'active' | 'completed' | 'on_hold';
   progresso: number; // 0 - 100
+  cliente?: string; // Optional client name for grouping
 }
 
 export interface Note {

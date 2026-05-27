@@ -9,11 +9,12 @@ import { showToast } from './Toast';
 interface ProfileViewProps {
   data: DatabaseState;
   onRefresh: () => void;
+  theme?: 'light' | 'dark';
 }
 
-export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
+export default function ProfileView({ data, onRefresh, theme = 'light' }: ProfileViewProps) {
   // General Settings States
-  const [userName, setUserName] = useState(data.userProfile.nome || 'Cesaronesto');
+  const [userName, setUserName] = useState(data.userProfile.nome || 'César');
   const [appName, setAppName] = useState(data.userProfile.appName || 'LifeOS AI');
   const [geminiApiKey, setGeminiApiKey] = useState(data.userProfile.geminiApiKey || '');
   const [deepseekApiKey, setDeepseekApiKey] = useState(data.userProfile.deepseekApiKey || '');
@@ -24,29 +25,32 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
   const [showDeepseekKey, setShowDeepseekKey] = useState(false);
   const [showQwenKey, setShowQwenKey] = useState(false);
   const [showTelegramToken, setShowTelegramToken] = useState(false);
-  const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [settingsSuccess, setSettingsSuccess] = useState(false);
-  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
-
-  // Profile Bio States
-  const [contexto, setContexto] = useState(data.userProfile.contexto);
-  const [isSavingBio, setIsSavingBio] = useState(false);
-  const [bioSuccess, setBioSuccess] = useState(false);
-
-  const [newInteresse, setNewInteresse] = useState('');
-  const [newObjetivo, setNewObjetivo] = useState('');
-
-  // Persona Editing States
+  
+  // Customization Persona States
   const [selectedPersonaId, setSelectedPersonaId] = useState(data.personas[0]?.id || 'cfo');
   const [editedPersonaName, setEditedPersonaName] = useState('');
   const [editedPersonaDesc, setEditedPersonaDesc] = useState('');
   const [editedPersonaPrompt, setEditedPersonaPrompt] = useState('');
-  const [isSavingPersona, setIsSavingPersona] = useState(false);
-  const [personaSuccess, setPersonaSuccess] = useState(false);
 
-  // Sync edits when selected persona changes or when database updates
+  // Bio State
+  const [contexto, setContexto] = useState(data.userProfile.contexto || '');
+
+  // Add Item Lists states
+  const [newObjetivo, setNewObjetivo] = useState('');
+  const [newInteresse, setNewInteresse] = useState('');
+
+  // Success indicator triggers
+  const [settingsSuccess, setSettingsSuccess] = useState(false);
+  const [bioSuccess, setBioSuccess] = useState(false);
+  const [personaSuccess, setPersonaSuccess] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [isSavingBio, setIsSavingBio] = useState(false);
+  const [isSavingPersona, setIsSavingPersona] = useState(false);
+  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
+
+  // Sync edits when selected persona switches
   useEffect(() => {
-    const p = data.personas.find(p => p.id === selectedPersonaId);
+    const p = data.personas.find(item => item.id === selectedPersonaId);
     if (p) {
       setEditedPersonaName(p.nome);
       setEditedPersonaDesc(p.descricao);
@@ -54,105 +58,71 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
     }
   }, [selectedPersonaId, data.personas]);
 
-  const getPersonaIcon = (id: string) => {
-    switch (id) {
-      case 'cfo': return <Briefcase className="w-5 h-5 text-emerald-400" />;
-      case 'founder': return <Rocket className="w-5 h-5 text-amber-500 animate-pulse" />;
-      case 'mentor': return <GraduationCap className="w-5 h-5 text-blue-400" />;
-      case 'executor': return <CheckSquare className="w-5 h-5 text-sky-400" />;
-      case 'conselheiro': return <Compass className="w-5 h-5 text-indigo-400" />;
-      case 'analista': return <TrendingUp className="w-5 h-5 text-pink-400" />;
-      case 'cos': return <LayoutGrid className="w-5 h-5 text-purple-400" />;
-      default: return <Sparkles className="w-5 h-5 text-gray-400" />;
-    }
-  };
-
-  const handleTogglePersona = async (id: string) => {
-    try {
-      const res = await fetch('/api/db/persona/toggle', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ id })
-      });
-      if (res.ok) {
-        onRefresh();
-      }
-    } catch (err) {
-      console.error('Falha ao alternar persona:', err);
-    }
-  };
+  // Sync state values if data gets updated from parent
+  useEffect(() => {
+    setUserName(data.userProfile.nome || 'César');
+    setAppName(data.userProfile.appName || 'LifeOS AI');
+    setGeminiApiKey(data.userProfile.geminiApiKey || '');
+    setDeepseekApiKey(data.userProfile.deepseekApiKey || '');
+    setQwenApiKey(data.userProfile.qwenApiKey || '');
+    setTelegramBotToken(data.userProfile.telegramBotToken || '');
+    setTelegramChatId(data.userProfile.telegramChatId || '');
+    setContexto(data.userProfile.contexto || '');
+  }, [data]);
 
   const handleSettingsSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingSettings(true);
-    setSettingsSuccess(false);
     try {
       const res = await fetch('/api/db/profile', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           nome: userName,
-          appName: appName,
-          geminiApiKey: geminiApiKey,
-          deepseekApiKey: deepseekApiKey,
-          qwenApiKey: qwenApiKey,
-          telegramBotToken: telegramBotToken,
-          telegramChatId: telegramChatId
+          appName,
+          geminiApiKey,
+          deepseekApiKey,
+          qwenApiKey,
+          telegramBotToken,
+          telegramChatId
         })
       });
       if (res.ok) {
+        showToast('Configurações do sistema salvas com sucesso!', 'success');
         setSettingsSuccess(true);
-        onRefresh();
         setTimeout(() => setSettingsSuccess(false), 3000);
+        onRefresh();
+      } else {
+        showToast('Erro ao atualizar configurações.', 'error');
       }
     } catch (err) {
-      console.error('Falha ao salvar configurações gerais:', err);
+      console.error(err);
+      showToast('Falha na comunicação com o servidor.', 'error');
     } finally {
       setIsSavingSettings(false);
-    }
-  };
-
-  const handleRegisterWebhook = async () => {
-    setIsRegisteringWebhook(true);
-    try {
-      const res = await fetch('/api/telegram/register-webhook', { method: 'POST' });
-      const json = await res.json();
-      if (res.ok) {
-        showToast(json.message || 'Webhook registrado!', 'success');
-      } else {
-        showToast(json.error || 'Erro ao registrar webhook.', 'error');
-      }
-    } catch (err: any) {
-      showToast(`Falha na requisição: ${err.message}`, 'error');
-    } finally {
-      setIsRegisteringWebhook(false);
     }
   };
 
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingBio(true);
-    setBioSuccess(false);
     try {
       const res = await fetch('/api/db/profile', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contexto,
-          interesses: data.userProfile.interesses,
-          objetivos: data.userProfile.objetivos,
-          preferencias: data.userProfile.preferencias
-        })
+        body: JSON.stringify({ contexto })
       });
       if (res.ok) {
+        showToast('Contexto existencial atualizado!', 'success');
         setBioSuccess(true);
-        onRefresh();
         setTimeout(() => setBioSuccess(false), 3000);
+        onRefresh();
+      } else {
+        showToast('Erro ao atualizar biografia.', 'error');
       }
     } catch (err) {
-      console.error('Falha ao salvar perfil:', err);
+      console.error(err);
+      showToast('Falha na comunicação.', 'error');
     } finally {
       setIsSavingBio(false);
     }
@@ -161,42 +131,91 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
   const handlePersonaSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingPersona(true);
-    setPersonaSuccess(false);
     try {
-      const res = await fetch('/api/db/persona/update', {
-        method: 'POST',
+      const res = await fetch(`/api/db/personas/${selectedPersonaId}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: selectedPersonaId,
           nome: editedPersonaName,
           descricao: editedPersonaDesc,
           prompt_base: editedPersonaPrompt
         })
       });
       if (res.ok) {
+        showToast(`Persona ${editedPersonaName} atualizada!`, 'success');
         setPersonaSuccess(true);
-        onRefresh();
         setTimeout(() => setPersonaSuccess(false), 3000);
+        onRefresh();
+      } else {
+        showToast('Erro ao atualizar a persona.', 'error');
       }
     } catch (err) {
-      console.error('Falha ao atualizar persona:', err);
+      console.error(err);
+      showToast('Falha no salvamento.', 'error');
     } finally {
       setIsSavingPersona(false);
     }
   };
 
-  // Add list helper
-  const handleAddItem = async (field: 'interesses' | 'objetivos', value: string, clearFn: () => void) => {
-    if (!value.trim()) return;
+  const handleTogglePersona = async (id: string) => {
     try {
-      const updatedList = [...data.userProfile[field], value];
+      const res = await fetch(`/api/db/personas/${id}/toggle`, { method: 'POST' });
+      if (res.ok) {
+        const payload = await res.json();
+        showToast(`Persona ativa alterada para: ${payload.nome}`, 'success');
+        onRefresh();
+      }
+    } catch (err) {
+      console.error('Falha ao ativar persona:', err);
+    }
+  };
+
+  const handleRegisterWebhook = async () => {
+    if (!telegramBotToken) {
+      showToast('Defina o Telegram Bot Token antes de registrar.', 'warning');
+      return;
+    }
+    setIsRegisteringWebhook(true);
+    try {
+      const res = await fetch('/api/telegram/register-webhook', { method: 'POST' });
+      if (res.ok) {
+        const body = await res.json();
+        showToast(`Webhook Telegram registrado! Bot: @${body.username}`, 'success');
+      } else {
+        const errBody = await res.json();
+        showToast(`Falha: ${errBody.error || 'Erro desconhecido'}`, 'error');
+      }
+    } catch (err: any) {
+      showToast(`Erro na rede: ${err.message}`, 'error');
+    } finally {
+      setIsRegisteringWebhook(false);
+    }
+  };
+
+  const getPersonaIcon = (id: string) => {
+    switch (id) {
+      case 'cfo': return <Briefcase className="w-5 h-5 text-emerald-500" />;
+      case 'founder': return <Rocket className="w-5 h-5 text-blue-500" />;
+      case 'mentor': return <GraduationCap className="w-5 h-5 text-sky-500" />;
+      case 'executor': return <CheckSquare className="w-5 h-5 text-orange-500" />;
+      case 'conselheiro': return <Compass className="w-5 h-5 text-purple-500" />;
+      case 'analista': return <TrendingUp className="w-5 h-5 text-pink-500" />;
+      default: return <LayoutGrid className="w-5 h-5 text-slate-400" />;
+    }
+  };
+
+  const handleAddItem = async (field: 'objetivos' | 'interesses', value: string, clearCallback: () => void) => {
+    if (!value.trim()) return;
+    const currentList = data.userProfile[field] || [];
+    const updatedList = [...currentList, value.trim()];
+    try {
       const res = await fetch('/api/db/profile', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: updatedList })
       });
       if (res.ok) {
-        clearFn();
+        clearCallback();
         onRefresh();
       }
     } catch (err) {
@@ -204,12 +223,12 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
     }
   };
 
-  // Remove list helper
-  const handleRemoveItem = async (field: 'interesses' | 'objetivos', index: number) => {
+  const handleRemoveItem = async (field: 'objetivos' | 'interesses', index: number) => {
+    const currentList = data.userProfile[field] || [];
+    const updatedList = currentList.filter((_, i) => i !== index);
     try {
-      const updatedList = data.userProfile[field].filter((_, idx) => idx !== index);
       const res = await fetch('/api/db/profile', {
-        method: 'POST',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ [field]: updatedList })
       });
@@ -221,17 +240,42 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
     }
   };
 
+  // Dynamic design variables based on the active theme
+  const darkColors = {
+    cardBg: 'bg-[#111318] border-[#1e202a] text-slate-100',
+    titleText: 'text-white',
+    subText: 'text-slate-400',
+    mutedText: 'text-gray-500',
+    divider: 'border-[#1b1c25]',
+    inputBg: 'bg-[#090a0d] border-[#202330] text-white placeholder-gray-650',
+    btnSecondary: 'bg-[#202434] hover:bg-[#2c3248] text-white border-transparent',
+    listBg: 'bg-[#090a0d] border-[#1e202c] text-gray-300'
+  };
+
+  const lightColors = {
+    cardBg: 'bg-white border-slate-200 text-slate-800',
+    titleText: 'text-slate-800',
+    subText: 'text-slate-600',
+    mutedText: 'text-slate-400',
+    divider: 'border-slate-100',
+    inputBg: 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400',
+    btnSecondary: 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200',
+    listBg: 'bg-slate-50 border-slate-200 text-slate-700'
+  };
+
+  const c = theme === 'dark' ? darkColors : lightColors;
+
   return (
     <div className="space-y-6">
       
-      {/* Grid of the 7 native Personas */}
-      <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-6 shadow-md">
-        <div className="flex border-b border-[#1b1c25] pb-3 mb-5 items-center justify-between">
+      {/* 1. Grid of the 7 native Personas */}
+      <div className={`border rounded-xl p-6 shadow-md transition-colors ${c.cardBg}`}>
+        <div className={`flex border-b pb-3 mb-5 items-center justify-between ${c.divider}`}>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4.5 h-4.5 text-amber-400 animate-pulse" />
-            <h3 className="text-sm font-semibold text-white tracking-wide">COGNITIVE PERSONAS</h3>
+            <Sparkles className="w-4.5 h-4.5 text-amber-450 animate-pulse" />
+            <h3 className={`text-sm font-semibold tracking-wide ${c.titleText}`}>COGNITIVE PERSONAS</h3>
           </div>
-          <span className="text-[10px] text-gray-500 font-mono uppercase">Ligar ou desligar personas nativas</span>
+          <span className={`text-[10px] font-mono uppercase ${c.mutedText}`}>Ligar ou desligar personas nativas</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -241,18 +285,18 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
               onClick={() => handleTogglePersona(p.id)}
               className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 cursor-pointer select-none transition-all duration-300 hover:scale-[1.01] ${
                 p.ativa 
-                  ? 'bg-blue-950/20 border-blue-500 shadow-md ring-1 ring-blue-500/30' 
-                  : 'bg-[#090a0d] border-[#1e212c] hover:border-gray-600/30'
+                  ? (theme === 'dark' ? 'bg-blue-950/20 border-blue-500 shadow-md ring-1 ring-blue-500/30' : 'bg-blue-50/50 border-blue-500 shadow-md ring-1 ring-blue-500/20')
+                  : (theme === 'dark' ? 'bg-[#090a0d] border-[#1e212c] hover:border-slate-700/50' : 'bg-slate-50 border-slate-200 hover:border-slate-350/50')
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2.5">
-                  <div className={`p-2 rounded-lg ${p.ativa ? 'bg-blue-500/10' : 'bg-gray-800/40'}`}>
+                  <div className={`p-2 rounded-lg ${p.ativa ? 'bg-blue-500/10' : 'bg-gray-800/10'}`}>
                     {getPersonaIcon(p.id)}
                   </div>
                   <div>
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">{p.nome}</h4>
-                    <span className="text-[9px] text-gray-500 font-mono tracking-wide">ID: {p.id}</span>
+                    <h4 className={`text-xs font-bold uppercase tracking-wider ${c.titleText}`}>{p.nome}</h4>
+                    <span className={`text-[9px] font-mono tracking-wide ${c.mutedText}`}>ID: {p.id}</span>
                   </div>
                 </div>
                 {p.ativa ? (
@@ -260,33 +304,35 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                     ACTIVE
                   </span>
                 ) : (
-                  <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-500">
+                  <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${
+                    theme === 'dark' ? 'bg-gray-900 border-gray-800 text-gray-500' : 'bg-slate-200 border-slate-300 text-slate-500'
+                  }`}>
                     STANDBY
                   </span>
                 )}
               </div>
 
-              <p className="text-[11px] text-gray-400 leading-relaxed font-sans">{p.descricao}</p>
+              <p className={`text-[11px] leading-relaxed font-sans ${c.subText}`}>{p.descricao}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Main Settings Grid */}
+      {/* 2. Main Settings Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         
         {/* Left Column: General Configuration and Bio (Col Span 3) */}
         <div className="lg:col-span-3 space-y-6">
           
           {/* Card: Configurações Gerais */}
-          <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-6 shadow-md">
-            <div className="flex border-b border-[#1b1c25] pb-3 mb-4 items-center justify-between">
+          <div className={`border rounded-xl p-6 shadow-md transition-colors ${c.cardBg}`}>
+            <div className={`flex border-b pb-3 mb-4 items-center justify-between ${c.divider}`}>
               <div className="flex items-center gap-2">
-                <Settings className="w-4.5 h-4.5 text-blue-400" />
-                <h3 className="text-sm font-semibold text-white tracking-wide">CONFIGURAÇÕES DO SISTEMA</h3>
+                <Settings className="w-4.5 h-4.5 text-blue-500" />
+                <h3 className={`text-sm font-semibold tracking-wide ${c.titleText}`}>CONFIGURAÇÕES DO SISTEMA</h3>
               </div>
               {settingsSuccess && (
-                <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/25 px-2 py-0.5 rounded flex items-center gap-1">
+                <span className="text-[10px] font-mono font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1">
                   <Check className="w-3 h-3" /> SALVO
                 </span>
               )}
@@ -295,33 +341,35 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
             <form onSubmit={handleSettingsSave} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold block">Nome do Usuário</label>
+                  <label className={`text-[10px] font-mono uppercase tracking-wider font-semibold block ${c.mutedText}`}>Nome do Usuário</label>
                   <input 
                     type="text"
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
-                    className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    placeholder="Ex: Augusto"
+                    className={`w-full focus:border-blue-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${c.inputBg}`}
+                    placeholder="Ex: César"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold block">Nome da Plataforma (App Name)</label>
+                  <label className={`text-[10px] font-mono uppercase tracking-wider font-semibold block ${c.mutedText}`}>Nome da Plataforma (App Name)</label>
                   <input 
                     type="text"
                     value={appName}
                     onChange={(e) => setAppName(e.target.value)}
-                    className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className={`w-full focus:border-blue-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${c.inputBg}`}
                     placeholder="Ex: LifeOS AI"
                     required
                   />
                 </div>
-                           {/* API Keys grid */}
+              </div>
+
+              {/* API Keys grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Gemini Key */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold block flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
+                  <label className={`text-[10px] font-mono uppercase tracking-wider font-semibold block flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap ${c.mutedText}`}>
                     <Key className="w-3.5 h-3.5 text-yellow-500 shrink-0" />
                     Gemini Key
                   </label>
@@ -330,13 +378,13 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                       type={showApiKey ? "text" : "password"}
                       value={geminiApiKey}
                       onChange={(e) => setGeminiApiKey(e.target.value)}
-                      className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded-lg pl-3 pr-10 py-2 text-xs text-white placeholder-gray-650 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      className={`w-full focus:border-blue-500 rounded-lg pl-3 pr-10 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono transition-colors ${c.inputBg}`}
                       placeholder="GEMINI_API_KEY..."
                     />
                     <button
                       type="button"
                       onClick={() => setShowApiKey(!showApiKey)}
-                      className="absolute right-3 top-2 text-gray-500 hover:text-white"
+                      className={`absolute right-3 top-2 cursor-pointer transition-colors ${theme === 'dark' ? 'text-gray-500 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                     >
                       {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -345,7 +393,7 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
 
                 {/* DeepSeek Key */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold block flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
+                  <label className={`text-[10px] font-mono uppercase tracking-wider font-semibold block flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap ${c.mutedText}`}>
                     <Key className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                     DeepSeek Key
                   </label>
@@ -354,13 +402,13 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                       type={showDeepseekKey ? "text" : "password"}
                       value={deepseekApiKey}
                       onChange={(e) => setDeepseekApiKey(e.target.value)}
-                      className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded-lg pl-3 pr-10 py-2 text-xs text-white placeholder-gray-650 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      className={`w-full focus:border-blue-500 rounded-lg pl-3 pr-10 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono transition-colors ${c.inputBg}`}
                       placeholder="DEEPSEEK_API_KEY..."
                     />
                     <button
                       type="button"
                       onClick={() => setShowDeepseekKey(!showDeepseekKey)}
-                      className="absolute right-3 top-2 text-gray-500 hover:text-white"
+                      className={`absolute right-3 top-2 cursor-pointer transition-colors ${theme === 'dark' ? 'text-gray-500 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                     >
                       {showDeepseekKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -369,7 +417,7 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
 
                 {/* Qwen Key */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold block flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap">
+                  <label className={`text-[10px] font-mono uppercase tracking-wider font-semibold block flex items-center gap-1.5 text-ellipsis overflow-hidden whitespace-nowrap ${c.mutedText}`}>
                     <Key className="w-3.5 h-3.5 text-orange-500 shrink-0" />
                     Qwen Key (70M Free)
                   </label>
@@ -378,25 +426,25 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                       type={showQwenKey ? "text" : "password"}
                       value={qwenApiKey}
                       onChange={(e) => setQwenApiKey(e.target.value)}
-                      className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded-lg pl-3 pr-10 py-2 text-xs text-white placeholder-gray-650 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      className={`w-full focus:border-blue-500 rounded-lg pl-3 pr-10 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono transition-colors ${c.inputBg}`}
                       placeholder="QWEN_API_KEY..."
                     />
                     <button
                       type="button"
                       onClick={() => setShowQwenKey(!showQwenKey)}
-                      className="absolute right-3 top-2 text-gray-500 hover:text-white"
+                      className={`absolute right-3 top-2 cursor-pointer transition-colors ${theme === 'dark' ? 'text-gray-500 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                     >
                       {showQwenKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
-              </div>    </div>
+              </div>
 
               {/* Telegram config grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-t border-[#1a1c25] pt-4">
+              <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 border-t pt-4 ${c.divider}`}>
                 {/* Bot Token */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold block">
+                  <label className={`text-[10px] font-mono uppercase tracking-wider font-semibold block ${c.mutedText}`}>
                     Telegram Bot Token
                   </label>
                   <div className="relative">
@@ -404,13 +452,13 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                       type={showTelegramToken ? "text" : "password"}
                       value={telegramBotToken}
                       onChange={(e) => setTelegramBotToken(e.target.value)}
-                      className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded-lg pl-3 pr-10 py-2 text-xs text-white placeholder-gray-650 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                      className={`w-full focus:border-blue-500 rounded-lg pl-3 pr-10 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono transition-colors ${c.inputBg}`}
                       placeholder="Ex: 8958634176:AA..."
                     />
                     <button
                       type="button"
                       onClick={() => setShowTelegramToken(!showTelegramToken)}
-                      className="absolute right-3 top-2 text-gray-500 hover:text-white"
+                      className={`absolute right-3 top-2 cursor-pointer transition-colors ${theme === 'dark' ? 'text-gray-500 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                     >
                       {showTelegramToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -419,14 +467,14 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
 
                 {/* Chat ID */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold block">
+                  <label className={`text-[10px] font-mono uppercase tracking-wider font-semibold block ${c.mutedText}`}>
                     Seu Telegram Chat ID
                   </label>
                   <input 
                     type="text"
                     value={telegramChatId}
                     onChange={(e) => setTelegramChatId(e.target.value)}
-                    className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-650 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono"
+                    className={`w-full focus:border-blue-500 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono transition-colors ${c.inputBg}`}
                     placeholder="Ex: 987654321"
                   />
                 </div>
@@ -445,7 +493,7 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                   type="button"
                   onClick={handleRegisterWebhook}
                   disabled={isRegisteringWebhook || !telegramBotToken}
-                  className="bg-indigo-650 hover:bg-indigo-600 disabled:bg-indigo-900/40 disabled:text-gray-500 text-indigo-300 hover:text-white border border-indigo-500/20 text-xs font-semibold rounded-lg px-4 py-2 transition cursor-pointer flex items-center gap-1.5"
+                  className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900/40 disabled:text-gray-500 text-indigo-100 border border-indigo-500/20 text-xs font-semibold rounded-lg px-4 py-2 transition cursor-pointer flex items-center gap-1.5"
                 >
                   <Send className="w-3.5 h-3.5" />
                   {isRegisteringWebhook ? 'Registrando...' : 'Registrar Webhook Oficial'}
@@ -455,14 +503,14 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
           </div>
 
           {/* Card: Biografia & Contexto */}
-          <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-6 shadow-md">
-            <div className="flex border-b border-[#1b1c25] pb-3 mb-4 items-center justify-between">
+          <div className={`border rounded-xl p-6 shadow-md transition-colors ${c.cardBg}`}>
+            <div className={`flex border-b pb-3 mb-4 items-center justify-between ${c.divider}`}>
               <div className="flex items-center gap-2">
-                <User className="w-4.5 h-4.5 text-blue-400" />
-                <h3 className="text-sm font-semibold text-white tracking-wide">BIOGRAFIA & CONTEXTO</h3>
+                <User className="w-4.5 h-4.5 text-blue-500" />
+                <h3 className={`text-sm font-semibold tracking-wide ${c.titleText}`}>BIOGRAFIA & CONTEXTO</h3>
               </div>
               {bioSuccess && (
-                <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/25 px-2 py-0.5 rounded flex items-center gap-1">
+                <span className="text-[10px] font-mono font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded flex items-center gap-1">
                   <Check className="w-3 h-3" /> ATUALIZADO
                 </span>
               )}
@@ -470,13 +518,13 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
 
             <form onSubmit={handleProfileSave} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider font-semibold block">Contexto Existencial / Perfil Executivo</label>
+                <label className={`text-[10px] font-mono uppercase tracking-wider font-semibold block ${c.mutedText}`}>Contexto Existencial / Perfil Executivo</label>
                 <textarea 
                   value={contexto}
                   onChange={(e) => setContexto(e.target.value)}
                   rows={4}
                   placeholder="Ex: É um fundador técnico focado em otimização de tempo e automações..."
-                  className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded-lg p-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className={`w-full focus:border-blue-500 rounded-lg p-3 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors ${c.inputBg}`}
                 />
               </div>
               
@@ -495,14 +543,14 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Card: Personalizar Persona (Edit prompts) */}
-          <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-5 shadow-md space-y-4">
-            <div className="flex border-b border-[#1b1c25] pb-2.5 items-center justify-between">
+          <div className={`border rounded-xl p-5 shadow-md space-y-4 transition-colors ${c.cardBg}`}>
+            <div className={`flex border-b pb-2.5 items-center justify-between ${c.divider}`}>
               <div className="flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-purple-400" />
-                <span className="text-xs font-mono font-bold text-gray-300 uppercase tracking-wider">EDITAR PERSONAS</span>
+                <Edit3 className="w-4 h-4 text-purple-500" />
+                <span className={`text-xs font-mono font-bold uppercase tracking-wider ${c.titleText}`}>EDITAR PERSONAS</span>
               </div>
               {personaSuccess && (
-                <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/25 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-mono font-bold text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
                   SALVO
                 </span>
               )}
@@ -510,14 +558,14 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
 
             <div className="space-y-3">
               <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 font-mono uppercase tracking-wider block">Selecione para Editar</label>
+                <label className={`text-[10px] font-mono uppercase tracking-wider block ${c.mutedText}`}>Selecione para Editar</label>
                 <select
                   value={selectedPersonaId}
                   onChange={(e) => setSelectedPersonaId(e.target.value)}
-                  className="w-full bg-[#090a0d] border border-[#202330] rounded p-2 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+                  className={`w-full focus:border-blue-500 rounded p-2 text-xs focus:outline-none font-mono transition-colors ${c.inputBg}`}
                 >
                   {data.personas.map(p => (
-                    <option key={p.id} value={p.id} className="bg-[#111318] text-white">
+                    <option key={p.id} value={p.id} className={`${theme === 'dark' ? 'bg-[#111318] text-white' : 'bg-white text-slate-800'}`}>
                       {p.nome} ({p.id}) {p.ativa ? '🟢' : ''}
                     </option>
                   ))}
@@ -526,36 +574,36 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
 
               <form onSubmit={handlePersonaSave} className="space-y-3 pt-2">
                 <div className="space-y-1">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider block">Nome da Persona</label>
+                  <label className={`text-[10px] font-mono uppercase tracking-wider block ${c.mutedText}`}>Nome da Persona</label>
                   <input
                     type="text"
                     value={editedPersonaName}
                     onChange={(e) => setEditedPersonaName(e.target.value)}
-                    className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded p-2 text-xs text-white focus:outline-none"
+                    className={`w-full focus:border-blue-500 rounded p-2 text-xs focus:outline-none transition-colors ${c.inputBg}`}
                     placeholder="Nome da inteligência"
                     required
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider block">Descrição Curta</label>
+                  <label className={`text-[10px] font-mono uppercase tracking-wider block ${c.mutedText}`}>Descrição Curta</label>
                   <input
                     type="text"
                     value={editedPersonaDesc}
                     onChange={(e) => setEditedPersonaDesc(e.target.value)}
-                    className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded p-2 text-xs text-white focus:outline-none"
+                    className={`w-full focus:border-blue-500 rounded p-2 text-xs focus:outline-none transition-colors ${c.inputBg}`}
                     placeholder="Objetivo principal..."
                     required
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] text-gray-400 font-mono uppercase tracking-wider block">Instrução Base (System Prompt)</label>
+                  <label className={`text-[10px] font-mono uppercase tracking-wider block ${c.mutedText}`}>Instrução Base (System Prompt)</label>
                   <textarea
                     value={editedPersonaPrompt}
                     onChange={(e) => setEditedPersonaPrompt(e.target.value)}
                     rows={6}
-                    className="w-full bg-[#090a0d] border border-[#202330] focus:border-blue-500 rounded p-2 text-xs text-white focus:outline-none font-mono text-[10px] leading-relaxed"
+                    className={`w-full focus:border-blue-500 rounded p-2 text-xs focus:outline-none font-mono text-[10px] leading-relaxed transition-colors ${c.inputBg}`}
                     placeholder="Base de instruções cognitivas de sistema..."
                     required
                   />
@@ -564,22 +612,22 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                 <button
                   type="submit"
                   disabled={isSavingPersona}
-                  className="w-full bg-[#202434] hover:bg-[#2c3248] disabled:bg-[#202434]/50 text-white text-xs font-semibold rounded py-2 transition cursor-pointer font-mono"
+                  className={`w-full text-xs font-semibold rounded py-2 transition cursor-pointer font-mono border ${c.btnSecondary}`}
                 >
-                  {isSavingPersona ? 'Atualizando...' : 'Salvar Alterações da Persona'}
+                  {isSavingPersona ? 'Atualizando...' : 'Salvar Alterações'}
                 </button>
               </form>
             </div>
           </div>
 
           {/* List Card: Objetivos */}
-          <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-5 shadow-md space-y-3">
-            <span className="text-xs font-mono font-bold text-gray-300 uppercase block tracking-wider">Objetivos de Sucesso</span>
+          <div className={`border rounded-xl p-5 shadow-md space-y-3 transition-colors ${c.cardBg}`}>
+            <span className={`text-xs font-mono font-bold uppercase block tracking-wider ${c.titleText}`}>Objetivos de Sucesso</span>
             
             <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
               {data.userProfile.objetivos.map((obj, i) => (
-                <div key={i} className="flex justify-between items-center bg-[#090a0d] border border-[#1e202c] rounded px-2.5 py-1.5 text-[11px] group">
-                  <span className="text-gray-300 truncate pr-2">{obj}</span>
+                <div key={i} className={`flex justify-between items-center border rounded px-2.5 py-1.5 text-[11px] group transition-colors ${c.listBg}`}>
+                  <span className="truncate pr-2">{obj}</span>
                   <button 
                     type="button"
                     onClick={() => handleRemoveItem('objetivos', i)}
@@ -597,12 +645,12 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                 value={newObjetivo}
                 onChange={(e) => setNewObjetivo(e.target.value)}
                 placeholder="Novo objetivo..."
-                className="flex-1 bg-[#090a0d] border border-[#202330] rounded px-2.5 py-1 text-[11px] text-white focus:outline-none focus:border-blue-500"
+                className={`flex-1 rounded px-2.5 py-1 text-[11px] focus:outline-none focus:border-blue-500 transition-colors ${c.inputBg}`}
               />
               <button 
                 type="button"
                 onClick={() => handleAddItem('objetivos', newObjetivo, () => setNewObjetivo(''))}
-                className="bg-[#202434] hover:bg-[#2c3248] text-white p-1.5 rounded cursor-pointer"
+                className={`p-1.5 rounded cursor-pointer border ${c.btnSecondary}`}
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -610,13 +658,13 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
           </div>
 
           {/* List Card: Interesses */}
-          <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-5 shadow-md space-y-3">
-            <span className="text-xs font-mono font-bold text-gray-300 uppercase block tracking-wider">Áreas de Interesse</span>
+          <div className={`border rounded-xl p-5 shadow-md space-y-3 transition-colors ${c.cardBg}`}>
+            <span className={`text-xs font-mono font-bold uppercase block tracking-wider ${c.titleText}`}>Áreas de Interesse</span>
             
             <div className="space-y-1.5 max-h-32 overflow-y-auto custom-scrollbar pr-1">
               {data.userProfile.interesses.map((int, i) => (
-                <div key={i} className="flex justify-between items-center bg-[#090a0d] border border-[#1e202c] rounded px-2.5 py-1.5 text-[11px] group">
-                  <span className="text-gray-300 truncate pr-2">{int}</span>
+                <div key={i} className={`flex justify-between items-center border rounded px-2.5 py-1.5 text-[11px] group transition-colors ${c.listBg}`}>
+                  <span className="truncate pr-2">{int}</span>
                   <button 
                     type="button"
                     onClick={() => handleRemoveItem('interesses', i)}
@@ -634,12 +682,12 @@ export default function ProfileView({ data, onRefresh }: ProfileViewProps) {
                 value={newInteresse}
                 onChange={(e) => setNewInteresse(e.target.value)}
                 placeholder="Novo interesse..."
-                className="flex-1 bg-[#090a0d] border border-[#202330] rounded px-2.5 py-1 text-[11px] text-white focus:outline-none focus:border-blue-500"
+                className={`flex-1 rounded px-2.5 py-1 text-[11px] focus:outline-none focus:border-blue-500 transition-colors ${c.inputBg}`}
               />
               <button 
                 type="button"
                 onClick={() => handleAddItem('interesses', newInteresse, () => setNewInteresse(''))}
-                className="bg-[#202434] hover:bg-[#2c3248] text-white p-1.5 rounded cursor-pointer"
+                className={`p-1.5 rounded cursor-pointer border ${c.btnSecondary}`}
               >
                 <Plus className="w-4 h-4" />
               </button>

@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { Flame, Target, CheckCircle2, Circle, Trophy, Calendar, Sparkles, TrendingUp, Trash2 } from 'lucide-react';
+import { Flame, Target, CheckCircle2, Circle, Trophy, Calendar, Sparkles, TrendingUp, Trash2, Plus } from 'lucide-react';
 import { DatabaseState, Habit, Goal } from '../types';
 import { showToast } from './Toast';
 
 interface GoalsHabitsViewProps {
   data: DatabaseState;
   onRefresh: () => void;
+  theme?: 'light' | 'dark';
 }
 
-export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProps) {
+export default function GoalsHabitsView({ data, onRefresh, theme = 'light' }: GoalsHabitsViewProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   // Form states
@@ -25,30 +26,18 @@ export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProp
       const res = await fetch('/api/db/habits/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id })
+        body: JSON.stringify({ id, date: todayStr })
       });
       if (res.ok) {
+        showToast('Progresso do hábito computado!', 'success');
         onRefresh();
+      } else {
+        showToast('Erro ao computar hábito.', 'error');
       }
-    } catch (err) {
-      console.error('Falha ao dar check-in em hábito:', err);
+    } catch (err: any) {
+      showToast(`Falha: ${err.message}`, 'error');
     } finally {
       setUpdatingId(null);
-    }
-  };
-
-  const handleGoalSliderProgress = async (id: string, val: string) => {
-    try {
-      const res = await fetch('/api/db/goals/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, progresso: val })
-      });
-      if (res.ok) {
-        onRefresh();
-      }
-    } catch (err) {
-      console.error('Falha ao salvar progresso de meta:', err);
     }
   };
 
@@ -59,10 +48,10 @@ export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProp
       const res = await fetch('/api/db/habits', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: newHabitNome, frequencia: newHabitFreq })
+        body: JSON.stringify({ nome: newHabitNome, frequencia: newHabitFreq, streak: 0, history: [] })
       });
       if (res.ok) {
-        showToast('Hábito criado com sucesso!', 'success');
+        showToast('Novo hábito adicionado!', 'success');
         setNewHabitNome('');
         onRefresh();
       } else {
@@ -78,7 +67,7 @@ export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProp
       try {
         const res = await fetch(`/api/db/habits/${id}`, { method: 'DELETE' });
         if (res.ok) {
-          showToast('Hábito excluído!', 'success');
+          showToast('Hábito excluído com sucesso!', 'success');
           onRefresh();
         } else {
           showToast('Erro ao excluir hábito.', 'error');
@@ -92,7 +81,10 @@ export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProp
   const handleCreateGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     const metaNum = parseFloat(newGoalMeta);
-    if (!newGoalTitle.trim() || isNaN(metaNum)) return;
+    if (!newGoalTitle.trim() || isNaN(metaNum)) {
+      showToast('Por favor, informe valores válidos.', 'error');
+      return;
+    }
     try {
       const res = await fetch('/api/db/goals', {
         method: 'POST',
@@ -128,42 +120,77 @@ export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProp
     }
   };
 
-  const todayStr = '2026-05-26';
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Dynamic theme variables for Light / Dark Premium consistency
+  const darkColors = {
+    cardBg: 'bg-[#111318] border-[#1e202a] text-slate-100',
+    titleText: 'text-white',
+    subText: 'text-slate-400',
+    mutedText: 'text-gray-500',
+    divider: 'border-[#1b1c25]',
+    formBg: 'bg-[#090a0d] border-[#1d202a] text-white',
+    inputBg: 'bg-[#090a0d] border-[#202330] text-white placeholder-gray-650',
+    listBg: 'bg-[#090a0d] border-[#1f212a] hover:border-[#2b2e3e] text-slate-300',
+    habitCardBg: 'bg-[#090a0d] border-[#1f212a]',
+    badgeBg: 'bg-[#1a1d28] border-[#2b2f3d]',
+    inputText: 'text-white'
+  };
+
+  const lightColors = {
+    cardBg: 'bg-white border-slate-200 text-slate-800',
+    titleText: 'text-slate-800',
+    subText: 'text-slate-500',
+    mutedText: 'text-slate-400',
+    divider: 'border-slate-100',
+    formBg: 'bg-slate-50 border-slate-200 text-slate-800',
+    inputBg: 'bg-slate-50 border-slate-200 text-slate-850 placeholder-slate-400',
+    listBg: 'bg-white border-slate-200 hover:border-slate-350 text-slate-700',
+    habitCardBg: 'bg-white border-slate-200',
+    badgeBg: 'bg-slate-100 border-slate-200',
+    inputText: 'text-slate-800'
+  };
+
+  const c = theme === 'dark' ? darkColors : lightColors;
 
   return (
     <div className="space-y-6">
       
-      {/* Habits Subsection */}
-      <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-6">
-        <div className="flex border-b border-[#1b1c25] pb-3 mb-4 items-center justify-between">
+      {/* 1. Habits Subsection */}
+      <div className={`border rounded-xl p-6 shadow-sm transition-colors ${c.cardBg}`}>
+        <div className={`flex border-b pb-3 mb-4 items-center justify-between ${c.divider}`}>
           <div className="flex items-center gap-2">
-            <Flame className="w-4.5 h-4.5 text-orange-400 animate-pulse" />
-            <h3 className="text-sm font-semibold text-white tracking-wide">ROUTINES & HABIT TRACKING</h3>
+            <Flame className="w-4.5 h-4.5 text-orange-500 animate-pulse" />
+            <h3 className={`text-sm font-bold tracking-wide ${c.titleText}`}>ROTINAS & HÁBITOS</h3>
           </div>
-          <span className="text-[10px] text-gray-500 font-mono uppercase">Hoje: **{todayStr}**</span>
+          <span className={`text-[10px] font-mono uppercase ${c.subText}`}>Hoje: **{todayStr}**</span>
         </div>
 
         {/* Inline Create Habit Form */}
-        <form onSubmit={handleCreateHabit} className="flex flex-wrap gap-2.5 mb-5 max-w-lg bg-[#090a0d] p-3 border border-[#1d202a] rounded-xl items-center">
+        <form onSubmit={handleCreateHabit} className={`flex flex-wrap gap-2.5 mb-5 max-w-lg p-3 rounded-xl items-center border transition-colors ${c.formBg}`}>
           <input
             type="text"
             required
             placeholder="Novo hábito (ex: Academia)"
             value={newHabitNome}
             onChange={e => setNewHabitNome(e.target.value)}
-            className="flex-1 min-w-[150px] bg-transparent text-xs text-white border-b border-[#2d2f3d] focus:border-orange-400 focus:outline-none py-1 px-1.5"
+            className={`flex-1 min-w-[150px] bg-transparent text-xs border-b focus:border-orange-500 focus:outline-none py-1 px-1.5 transition-colors ${
+              theme === 'dark' ? 'border-[#2d2f3d] text-white' : 'border-slate-200 text-slate-850'
+            }`}
           />
           <select
             value={newHabitFreq}
             onChange={e => setNewHabitFreq(e.target.value)}
-            className="bg-[#090a0d] text-xs text-gray-300 border border-[#2d2f3d] rounded p-1 cursor-pointer focus:outline-none"
+            className={`text-xs border rounded p-1.5 cursor-pointer focus:outline-none transition-colors ${
+              theme === 'dark' ? 'bg-[#090a0d] text-gray-300 border-[#2d2f3d]' : 'bg-white text-slate-700 border-slate-200'
+            }`}
           >
-            <option value="diaria">Diário</option>
-            <option value="semanal">Semanal</option>
+            <option value="diaria" className={theme === 'dark' ? 'bg-[#111318] text-white' : 'bg-white text-slate-850'}>Diário</option>
+            <option value="semanal" className={theme === 'dark' ? 'bg-[#111318] text-white' : 'bg-white text-slate-850'}>Semanal</option>
           </select>
           <button
             type="submit"
-            className="px-3 py-1 bg-orange-600 hover:bg-orange-500 text-white rounded text-xs font-semibold transition cursor-pointer"
+            className="px-3.5 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-sm select-none"
           >
             Adicionar
           </button>
@@ -178,30 +205,34 @@ export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProp
                 key={habit.id}
                 className={`p-4 rounded-xl border flex flex-col justify-between space-y-3 transition duration-200 ${
                   isCompletedToday 
-                    ? 'bg-emerald-950/20 border-emerald-500/20' 
-                    : 'bg-[#090a0d] border-[#1f212a] hover:border-[#2b2e3e]'
+                    ? (theme === 'dark' ? 'bg-emerald-950/20 border-emerald-500/20' : 'bg-emerald-50/50 border-emerald-500/20 text-emerald-850') 
+                    : `${c.habitCardBg} hover:border-slate-350`
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="truncate pr-2">
-                    <h4 className="text-xs font-semibold text-white truncate">{habit.nome}</h4>
-                    <span className="text-[9px] text-gray-500 font-mono uppercase block mt-0.5">Frequência: {habit.frequencia}</span>
+                    <h4 className={`text-xs font-bold truncate ${isCompletedToday ? 'text-emerald-600' : c.titleText}`}>{habit.nome}</h4>
+                    <span className={`text-[9px] font-mono uppercase block mt-0.5 ${c.subText}`}>Frequência: {habit.frequencia}</span>
                   </div>
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button 
                       disabled={updatingId === habit.id}
                       onClick={() => handleHabitCheck(habit.id)}
-                      className="p-1 hover:bg-[#1a1d29] rounded cursor-pointer transition select-none"
+                      className={`p-1 rounded cursor-pointer transition select-none ${
+                        theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
+                      }`}
                     >
                       {isCompletedToday ? (
-                        <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
+                        <CheckCircle2 className="w-4.5 h-4.5 text-emerald-500" />
                       ) : (
-                        <Circle className="w-4.5 h-4.5 text-gray-600 hover:text-orange-400" />
+                        <Circle className={`w-4.5 h-4.5 ${
+                          theme === 'dark' ? 'text-slate-600 hover:text-orange-400' : 'text-slate-400 hover:text-orange-500'
+                        }`} />
                       )}
                     </button>
                     <button
                       onClick={() => handleDeleteHabit(habit.id)}
-                      className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded cursor-pointer transition"
+                      className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded cursor-pointer transition"
                       title="Excluir hábito"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -210,13 +241,13 @@ export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProp
                 </div>
 
                 {/* Habit Streaks and Calendar visualization summary */}
-                <div className="flex items-center gap-2 pt-2 border-t border-[#1d1f2a]/60">
-                  <div className="flex items-center gap-1 bg-[#1a1d28] border border-[#2b2f3d] px-2 py-0.5 rounded text-[10px] font-mono text-orange-400 font-semibold uppercase">
-                    <Flame className="w-3.5 h-3.5 text-orange-400 fill-orange-400" />
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-150 dark:border-slate-800/60">
+                  <div className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-mono text-orange-500 font-bold uppercase border ${c.badgeBg}`}>
+                    <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500" />
                     {habit.streak} dias
                   </div>
-                  <div className="text-[9px] text-gray-500 font-mono scale-95 origin-left">
-                    Histórico consolidado
+                  <div className={`text-[9px] font-mono scale-95 origin-left ${c.subText}`}>
+                    Histórico ativo
                   </div>
                 </div>
               </div>
@@ -225,104 +256,100 @@ export default function GoalsHabitsView({ data, onRefresh }: GoalsHabitsViewProp
         </div>
       </div>
 
-      {/* Goals Subsections */}
-      <div className="bg-[#111318] border border-[#1e202a] rounded-xl p-6">
-        <div className="flex border-b border-[#1b1c25] pb-3 mb-4 items-center gap-2">
-          <Target className="w-4.5 h-4.5 text-blue-400 animate-pulse" />
-          <h3 className="text-sm font-semibold text-white tracking-wide">METAS DE ALTO STATUS</h3>
+      {/* 2. Goals Subsections */}
+      <div className={`border rounded-xl p-6 shadow-sm transition-colors ${c.cardBg}`}>
+        <div className={`flex border-b pb-3 mb-4 items-center gap-2 ${c.divider}`}>
+          <Target className="w-4.5 h-4.5 text-blue-500 animate-pulse" />
+          <h3 className={`text-sm font-bold tracking-wide ${c.titleText}`}>METAS DE SUCESSO</h3>
         </div>
 
         {/* Inline Create Goal Form */}
-        <form onSubmit={handleCreateGoal} className="grid grid-cols-1 sm:grid-cols-4 gap-3.5 mb-5 max-w-3xl bg-[#090a0d] p-4 border border-[#1d202a] rounded-xl items-end">
+        <form onSubmit={handleCreateGoal} className={`grid grid-cols-1 sm:grid-cols-4 gap-3.5 mb-5 max-w-3xl p-4 rounded-xl items-end border transition-colors ${c.formBg}`}>
           <div>
-            <label className="block text-[9px] font-mono text-gray-500 uppercase mb-1">Título da Meta*</label>
+            <label className={`block text-[9px] font-mono uppercase mb-1 ${c.subText}`}>Título da Meta*</label>
             <input
               type="text"
               required
               placeholder="Ex: Lançar SaaS"
               value={newGoalTitle}
               onChange={e => setNewGoalTitle(e.target.value)}
-              className="w-full bg-[#090a0d] text-xs text-white border-b border-[#2d2f3d] focus:border-blue-400 focus:outline-none py-1 px-1.5"
+              className={`w-full bg-transparent text-xs border-b focus:border-blue-400 focus:outline-none py-1 px-1.5 transition-colors ${
+                theme === 'dark' ? 'border-[#2d2f3d] text-white' : 'border-slate-200 text-slate-850'
+              }`}
             />
           </div>
           <div>
-            <label className="block text-[9px] font-mono text-gray-500 uppercase mb-1">Alvo Numérico*</label>
+            <label className={`block text-[9px] font-mono uppercase mb-1 ${c.subText}`}>Alvo Numérico*</label>
             <input
               type="number"
               required
-              placeholder="Ex: 5000"
+              placeholder="Ex: 10000"
               value={newGoalMeta}
               onChange={e => setNewGoalMeta(e.target.value)}
-              className="w-full bg-[#090a0d] text-xs text-white border-b border-[#2d2f3d] focus:border-blue-400 focus:outline-none py-1 px-1.5"
+              className={`w-full bg-transparent text-xs border-b focus:border-blue-400 focus:outline-none py-1 px-1.5 transition-colors ${
+                theme === 'dark' ? 'border-[#2d2f3d] text-white font-mono' : 'border-slate-200 text-slate-850 font-mono font-semibold'
+              }`}
             />
           </div>
           <div>
-            <label className="block text-[9px] font-mono text-gray-500 uppercase mb-1">Prazo*</label>
+            <label className={`block text-[9px] font-mono uppercase mb-1 ${c.subText}`}>Prazo Limite*</label>
             <input
               type="date"
               required
               value={newGoalPrazo}
               onChange={e => setNewGoalPrazo(e.target.value)}
-              className="w-full bg-[#090a0d] text-xs text-white border-b border-[#2d2f3d] focus:border-blue-400 focus:outline-none py-1 px-1.5 cursor-pointer"
+              className={`w-full bg-transparent text-xs border-b focus:border-blue-400 focus:outline-none py-1 px-1.5 cursor-pointer transition-colors ${
+                theme === 'dark' ? 'border-[#2d2f3d] text-white font-mono' : 'border-slate-200 text-slate-850 font-mono font-semibold'
+              }`}
             />
           </div>
           <button
             type="submit"
-            className="w-full py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold transition cursor-pointer"
+            className="w-full py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-sm select-none uppercase tracking-wide"
           >
             Cadastrar Meta
           </button>
         </form>
 
-        <div className="space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {data.goals.map((goal) => {
-            const pct = Math.min(100, Math.max(0, (goal.progresso / goal.meta) * 100));
+            const percentage = Math.min(100, Math.max(0, Math.round((goal.progresso / goal.meta) * 100)));
+            const formattedLimitDate = new Date(goal.prazo + 'T12:00:00').toLocaleDateString('pt-BR', { dateStyle: 'short' });
 
             return (
               <div 
                 key={goal.id}
-                className="p-5 bg-[#090a0d] border border-[#1f212a] rounded-xl shadow space-y-3"
+                className={`p-5 rounded-xl border space-y-4 transition-colors ${
+                  theme === 'dark' ? 'bg-[#090a0d] border-[#1f212a]' : 'bg-slate-50 border-slate-200'
+                }`}
               >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+                <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">{goal.titulo}</h4>
-                    <span className="text-[9px] text-gray-500 font-mono block mt-0.5">Prazo Estimado: {goal.prazo}</span>
+                    <h4 className={`text-xs font-bold ${c.titleText}`}>{goal.titulo}</h4>
+                    <span className={`text-[9px] font-mono block mt-1 ${c.subText}`}>Prazo Final: <strong>{formattedLimitDate}</strong></span>
                   </div>
-                  <div className="text-right shrink-0 flex items-center gap-3.5">
-                    <div>
-                      <span className="text-[10px] text-gray-400 font-mono uppercase block">Alvo de Meta</span>
-                      <strong className="text-xs font-semibold text-white font-mono">
-                        {goal.progresso.toLocaleString()} / {goal.meta.toLocaleString()} ({pct.toFixed(0)}%)
-                      </strong>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteGoal(goal.id)}
-                      className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded cursor-pointer transition"
-                      title="Excluir meta"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  <button 
+                    onClick={() => handleDeleteGoal(goal.id)}
+                    className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded cursor-pointer transition"
+                    title="Excluir meta"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
-                {/* Range progress Slider physically updating state on Release */}
-                <div className="space-y-1.5 pt-1">
-                  <input 
-                    type="range"
-                    min="0"
-                    max={goal.meta}
-                    value={goal.progresso}
-                    onChange={(e) => handleGoalSliderProgress(goal.id, e.target.value)}
-                    className="w-full bg-[#1b1c26] h-1.5 rounded-lg appearance-none cursor-ew-resize accent-blue-500 focus:outline-none"
-                  />
-                  <div className="flex justify-between items-center text-[9px] text-gray-500 font-mono uppercase">
-                    <span>Ajustar progresso na barra</span>
-                    <span>Sincronizado</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-[10px] font-mono">
+                    <span className={c.subText}>Progresso: <strong className={c.titleText}>{goal.progresso}</strong> de {goal.meta}</span>
+                    <span className="text-blue-500 font-bold">{percentage}%</span>
                   </div>
-                </div>
-
-                <div className="w-full bg-[#1c1e28] rounded-full h-1">
-                  <div className="bg-blue-500 h-1 rounded-full transition-all duration-300" style={{ width: `${pct}%` }}></div>
+                  
+                  {/* Progress bar container */}
+                  <div className="w-full rounded-full h-2 bg-slate-200 dark:bg-slate-800 overflow-hidden shadow-inner">
+                    <div 
+                      className="bg-blue-500 h-2 rounded-full transition-all duration-500 shadow-md"
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
                 </div>
               </div>
             );
