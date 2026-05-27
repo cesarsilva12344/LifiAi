@@ -1,0 +1,6 @@
+{
+  "name": "LifeOS AI",
+  "description": "SaaS pessoal LifeOS AI com interface de captura via Telegram e Dashboard de análise.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
