@@ -111,230 +111,22 @@ const DEFAULT_PROFILE: UserProfile = {
 };
 
 const DEFAULT_STATE: DatabaseState = {
-  inbox: [
-    {
-      id: 'i1',
-      type: 'expense',
-      raw_content: 'Gastei R$ 45,50 com almoço de negócios no restaurante Verde',
-      source: 'Telegram',
-      created_at: '2026-05-26T12:30:00Z',
-      processed: true,
-      extracted_id: 'exp1'
-    },
-    {
-      id: 'i2',
-      type: 'task',
-      raw_content: 'importante: revisar contrato do designer para o MVP até amanhã',
-      source: 'Telegram',
-      created_at: '2026-05-26T14:15:00Z',
-      processed: true,
-      extracted_id: 't1'
-    },
-    {
-      id: 'i3',
-      type: 'note',
-      raw_content: 'Ideia de feature: busca semântica em notas usando embeddings locais com Gemini API',
-      source: 'Telegram',
-      created_at: '2026-05-26T16:00:00Z',
-      processed: true,
-      extracted_id: 'n1'
-    },
-    {
-        id: 'i4',
-        type: 'income',
-        raw_content: 'Recebi R$ 3500,00 de consultoria técnica do projeto Alpha',
-        source: 'Telegram',
-        created_at: '2026-05-25T10:00:00Z',
-        processed: true,
-        extracted_id: 'inc1'
-    }
-  ],
-  expenses: [
-    {
-      id: 'exp1',
-      valor: 45.50,
-      categoria: 'Alimentação',
-      descricao: 'Almoço de negócios no restaurante Verde',
-      data: '2026-05-26'
-    },
-    {
-      id: 'exp2',
-      valor: 120.00,
-      categoria: 'Assinaturas',
-      descricao: 'Serviço de hospedagem Cloud Run e domínios',
-      data: '2026-05-24'
-    },
-    {
-      id: 'exp3',
-      valor: 89.90,
-      categoria: 'Transporte',
-      descricao: 'Uber para reunião presencial com investidor',
-      data: '2026-05-23'
-    }
-  ],
-  income: [
-    {
-      id: 'inc1',
-      valor: 3500.00,
-      categoria: 'Consultoria',
-      descricao: 'Consultoria técnica do projeto Alpha',
-      data: '2026-05-25'
-    },
-    {
-      id: 'inc2',
-      valor: 1500.00,
-      categoria: 'Mentoria',
-      descricao: 'Aulas de arquitetura de software para sêniors',
-      data: '2026-05-20'
-    }
-  ],
-  tasks: [
-    {
-      id: 't1',
-      titulo: 'Revisar contrato do designer para o MVP',
-      status: 'pending',
-      prioridade: 'high',
-      prazo: '2026-05-27'
-    },
-    {
-      id: 't2',
-      titulo: 'Documentar endpoints da API de Webhook',
-      status: 'completed',
-      prioridade: 'medium',
-      prazo: '2026-05-25'
-    },
-    {
-      id: 't3',
-      titulo: 'Subir código inicial para repositório e testar build',
-      status: 'completed',
-      prioridade: 'high',
-      prazo: '2026-05-26'
-    },
-    {
-      id: 't4',
-      titulo: 'Ajustar cálculo de streak de hábitos no Dashboard',
-      status: 'pending',
-      prioridade: 'medium',
-      prazo: '2026-05-28'
-    }
-  ],
-  reminders: [
-    {
-      id: 'r1',
-      titulo: 'Daily call com time de desenvolvimento do MVP',
-      data_hora: '2026-05-27T10:00:00Z',
-      status: 'active'
-    },
-    {
-      id: 'r2',
-      titulo: 'Reunião de alinhamento com investidor-anjo',
-      data_hora: '2026-05-28T15:00:00Z',
-      status: 'active'
-    }
-  ],
-  goals: [
-    {
-      id: 'g1',
-      titulo: 'Lançar beta fechado do LifeOS AI',
-      meta: 100,
-      progresso: 85,
-      prazo: '2026-06-15'
-    },
-    {
-      id: 'g2',
-      titulo: 'Faturamento de Micro-SaaS',
-      meta: 10000,
-      progresso: 5000,
-      prazo: '2026-08-31'
-    }
-  ],
-  habits: [
-    {
-      id: 'h1',
-      nome: 'Treino de Força (Academia)',
-      frequencia: 'diaria',
-      streak: 5,
-      history: ['2026-05-22', '2026-05-23', '2026-05-24', '2026-05-25', '2026-05-26']
-    },
-    {
-      id: 'h2',
-      nome: 'Meditação / Foco profundo',
-      frequencia: 'diaria',
-      streak: 3,
-      history: ['2026-05-24', '2026-05-25', '2026-05-26']
-    },
-    {
-      id: 'h3',
-      nome: 'Leitura de Papers Técnicos',
-      frequencia: 'semanal',
-      streak: 2,
-      history: ['2026-05-18', '2026-05-25']
-    }
-  ],
-  projects: [
-    {
-      id: 'p1',
-      nome: 'LifeOS AI core',
-      descricao: 'Sistema Operacional Pessoal integrando captura via Telegram e Dashboard Executivo.',
-      status: 'active',
-      progresso: 80
-    },
-    {
-      id: 'p2',
-      nome: 'Automator Pro',
-      descricao: 'Micro-SaaS para automação rápida de faturamento e Notas Fiscais em lote.',
-      status: 'planning',
-      progresso: 10
-    }
-  ],
-  notes: [
-    {
-      id: 'n1',
-      conteudo: 'Feature: busca semântica em notas usando embeddings locais com Gemini API. A ideia é vetorizar notas em lote com o modelo gemini-embedding-2-preview e realizar busca por similaridade de cossenos no próprio servidor Node para performance instantânea e privacidade.',
-      tags: ['SaaS', 'IA', 'Arquit_Software'],
-      created_at: '2026-05-26T16:00:00Z'
-    },
-    {
-      id: 'n2',
-      conteudo: 'Estudo de Conversão: o funil ideal para micro-SaaS de produtividade consiste em: 1) Captura orgânica via Twitter/LinkedIn; 2) Ferramenta gratuita útil; 3) Up-sell para plano premium executivo focando em conveniência radical.',
-      tags: ['Marketing', 'SaaS', 'Growth'],
-      created_at: '2026-05-25T11:00:00Z'
-    }
-  ],
-  ideas: [
-    {
-      id: 'id1',
-      titulo: 'Bot de Telegram para OCR de recibos financeiros',
-      conteudo: 'Extração automática de total, data e estabelecimento direto de tickets/imagens enviadas, integrado ao CFO.',
-      score: 9,
-      created_at: '2026-05-26T10:00:00Z'
-    },
-    {
-      id: 'id2',
-      titulo: 'Extensão de Chrome para Clippar links com IA',
-      conteudo: 'Botão no Chrome que resume o link lido e envia diretamente para o inbox do LifeOS como uma Nota inteligivel.',
-      score: 7,
-      created_at: '2026-05-24T18:00:00Z'
-    }
-  ],
-  memories: [
-    {
-      id: 'm1',
-      conteudo: 'Decidi focar toda a interface de captura do LifeOS AI no Telegram porque a barreira de fricção é zero. Mandar áudio de 20s caminhando ou colar um link é muito mais rápido que abrir um app pesado do Notion.',
-      origem: 'Telegram de César',
-      created_at: '2026-05-26T09:00:00Z',
-      embedding: []
-    },
-    {
-      id: 'm2',
-      conteudo: 'Configuração chave do banco postgres no Supabase: usar índices RLS fortes de segurança e habilitar pg_vector para habilitar inteligência de memórias a qualquer momento.',
-      origem: 'Telegram de César',
-      created_at: '2026-05-24T15:30:00Z',
-      embedding: []
-    }
-  ],
+  inbox: [],
+  expenses: [],
+  income: [],
+  tasks: [],
+  reminders: [],
+  goals: [],
+  habits: [],
+  projects: [],
+  notes: [],
+  ideas: [],
+  memories: [],
   personas: DEFAULT_PERSONAS,
-  userProfile: DEFAULT_PROFILE
+  userProfile: DEFAULT_PROFILE,
+  salaries: [],
+  creditCards: [],
+  cardExpenses: []
 };
 
 let currentDbState: DatabaseState | null = null;
@@ -410,7 +202,10 @@ async function syncAllToSupabase(state: DatabaseState) {
       syncTable(supabase, 'projects', state.projects),
       syncTable(supabase, 'notes', state.notes),
       syncTable(supabase, 'ideas', state.ideas),
-      syncTable(supabase, 'memories', state.memories)
+      syncTable(supabase, 'memories', state.memories),
+      syncTable(supabase, 'salaries', state.salaries || []),
+      syncTable(supabase, 'credit_cards', state.creditCards || []),
+      syncTable(supabase, 'card_expenses', state.cardExpenses || [])
     ]);
   } catch (err: any) {
     console.error('[Supabase Sync] Failed to sync database state:', err.message);
@@ -447,7 +242,10 @@ export async function initializeDatabase(): Promise<DatabaseState> {
         projectsRes,
         notesRes,
         ideasRes,
-        memoriesRes
+        memoriesRes,
+        salariesRes,
+        creditCardsRes,
+        cardExpensesRes
       ] = await Promise.all([
         supabase.from('user_profile').select('*').single(),
         supabase.from('personas').select('*'),
@@ -462,6 +260,9 @@ export async function initializeDatabase(): Promise<DatabaseState> {
         supabase.from('notes').select('*').order('created_at', { ascending: false }),
         supabase.from('ideas').select('*').order('created_at', { ascending: false }),
         supabase.from('memories').select('*').order('created_at', { ascending: false }),
+        supabase.from('salaries').select('*').order('data_prevista', { ascending: false }),
+        supabase.from('credit_cards').select('*').order('nome', { ascending: true }),
+        supabase.from('card_expenses').select('*').order('data', { ascending: false }),
       ]);
 
       if (profileRes.error && profileRes.error.code !== 'PGRST116') {
@@ -497,7 +298,10 @@ export async function initializeDatabase(): Promise<DatabaseState> {
         projects: projectsRes.data || [],
         notes: notesRes.data || [],
         ideas: ideasRes.data || [],
-        memories: memoriesRes.data || []
+        memories: memoriesRes.data || [],
+        salaries: salariesRes.data || [],
+        creditCards: creditCardsRes.data || [],
+        cardExpenses: cardExpensesRes.data || []
       };
 
       try {

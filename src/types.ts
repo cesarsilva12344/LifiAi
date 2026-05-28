@@ -110,6 +110,35 @@ export interface UserProfile {
   contexto: string;
 }
 
+export interface Salary {
+  id: string;
+  valor: number;
+  categoria: string;
+  descricao: string;
+  data_prevista: string; // YYYY-MM-DD
+  quitada: boolean;
+  data_pagamento: string | null; // YYYY-MM-DD
+}
+
+export interface CreditCard {
+  id: string;
+  nome: string;
+  limite: number;
+  dia_fechamento: number;
+  dia_vencimento: number;
+}
+
+export interface CardExpense {
+  id: string;
+  cartao_id: string;
+  valor: number;
+  categoria: string;
+  descricao: string;
+  data: string; // YYYY-MM-DD
+  parcelas: number;
+  quitada: boolean;
+}
+
 export interface DatabaseState {
   inbox: InboxItem[];
   expenses: Expense[];
@@ -124,4 +153,7 @@ export interface DatabaseState {
   memories: Memory[];
   personas: Persona[];
   userProfile: UserProfile;
+  salaries: Salary[];
+  creditCards: CreditCard[];
+  cardExpenses: CardExpense[];
 }

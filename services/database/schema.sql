@@ -222,6 +222,107 @@ CREATE TABLE IF NOT EXISTS telegram_history (
 
 CREATE INDEX IF NOT EXISTS idx_telegram_history_ts ON telegram_history (timestamp DESC);
 
+-- ───────────────────────────────────────────────────────
+-- Salários (Recebíveis / Finanças)
+-- ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS salaries (
+  id             TEXT PRIMARY KEY,
+  valor          NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  categoria      TEXT NOT NULL DEFAULT 'Geral',
+  descricao      TEXT DEFAULT '',
+  data_prevista  DATE NOT NULL DEFAULT CURRENT_DATE,
+  quitada        BOOLEAN DEFAULT FALSE,
+  data_pagamento DATE,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_salaries_data_prevista ON salaries (data_prevista DESC);
+
+-- ───────────────────────────────────────────────────────
+-- Cartões de Crédito
+-- ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS credit_cards (
+  id             TEXT PRIMARY KEY,
+  nome           TEXT NOT NULL,
+  limite         NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  dia_fechamento INTEGER NOT NULL DEFAULT 5,
+  dia_vencimento INTEGER NOT NULL DEFAULT 12,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ───────────────────────────────────────────────────────
+-- Despesas com Cartão de Crédito
+-- ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS card_expenses (
+  id             TEXT PRIMARY KEY,
+  cartao_id      TEXT REFERENCES credit_cards(id) ON DELETE CASCADE,
+  valor          NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  categoria      TEXT NOT NULL DEFAULT 'Outros',
+  descricao      TEXT DEFAULT '',
+  data           DATE NOT NULL DEFAULT CURRENT_DATE,
+  parcelas       INTEGER DEFAULT 1,
+  quitada        BOOLEAN DEFAULT FALSE,
+  created_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_card_expenses_data ON card_expenses (data DESC);
+CREATE INDEX IF NOT EXISTS idx_card_expenses_cartao ON card_expenses (cartao_id);
+
+-- ───────────────────────────────────────────────────────
+-- dcalendar (Tabela Dimensão Calendário para BI e Analytics)
+-- ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS dcalendar (
+  data             DATE PRIMARY KEY,
+  ano              INTEGER NOT NULL,
+  mes              INTEGER NOT NULL,
+  nome_mes         TEXT NOT NULL,
+  dia              INTEGER NOT NULL,
+  dia_semana       INTEGER NOT NULL,
+  nome_dia_semana  TEXT NOT NULL,
+  trimestre        INTEGER NOT NULL,
+  semestre         INTEGER NOT NULL,
+  fim_de_semana    BOOLEAN NOT NULL
+);
+
+-- Script para popular dcalendar de 2025 até 2030 automaticamente se estiver vazia
+CREATE OR REPLACE FUNCTION populate_dcalendar() RETURNS void AS $$
+DECLARE
+  current_d DATE := '2025-01-01';
+  end_d     DATE := '2030-12-31';
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM dcalendar LIMIT 1) THEN
+    WHILE current_d <= end_d LOOP
+      INSERT INTO dcalendar (
+        data,
+        ano,
+        mes,
+        nome_mes,
+        dia,
+        dia_semana,
+        nome_dia_semana,
+        trimestre,
+        semestre,
+        fim_de_semana
+      ) VALUES (
+        current_d,
+        EXTRACT(YEAR FROM current_d),
+        EXTRACT(MONTH FROM current_d),
+        TO_CHAR(current_d, 'TMMonth'),
+        EXTRACT(DAY FROM current_d),
+        EXTRACT(ISODOW FROM current_d),
+        TO_CHAR(current_d, 'TMDay'),
+        EXTRACT(QUARTER FROM current_d),
+        CASE WHEN EXTRACT(MONTH FROM current_d) <= 6 THEN 1 ELSE 2 END,
+        CASE WHEN EXTRACT(ISODOW FROM current_d) IN (6, 7) THEN TRUE ELSE FALSE END
+      );
+      current_d := current_d + INTERVAL '1 day';
+    END LOOP;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT populate_dcalendar();
+
 -- ═══════════════════════════════════════════════════════
 -- Row Level Security (RLS)
 -- Para app single-user com service_role key: desabilite RLS
@@ -242,6 +343,10 @@ ALTER TABLE notes            DISABLE ROW LEVEL SECURITY;
 ALTER TABLE ideas            DISABLE ROW LEVEL SECURITY;
 ALTER TABLE memories         DISABLE ROW LEVEL SECURITY;
 ALTER TABLE telegram_history DISABLE ROW LEVEL SECURITY;
+ALTER TABLE salaries         DISABLE ROW LEVEL SECURITY;
+ALTER TABLE credit_cards     DISABLE ROW LEVEL SECURITY;
+ALTER TABLE card_expenses    DISABLE ROW LEVEL SECURITY;
+ALTER TABLE dcalendar        DISABLE ROW LEVEL SECURITY;
 
 -- ═══════════════════════════════════════════════════════
 -- Verificação final

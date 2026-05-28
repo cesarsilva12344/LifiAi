@@ -144,230 +144,22 @@ var DEFAULT_PROFILE = {
   contexto: "Fundador t\xE9cnico trabalhando em m\xFAltiplos projetos de software e focando em maximizar a alavanca de cada hora gasta no dia."
 };
 var DEFAULT_STATE = {
-  inbox: [
-    {
-      id: "i1",
-      type: "expense",
-      raw_content: "Gastei R$ 45,50 com almo\xE7o de neg\xF3cios no restaurante Verde",
-      source: "Telegram",
-      created_at: "2026-05-26T12:30:00Z",
-      processed: true,
-      extracted_id: "exp1"
-    },
-    {
-      id: "i2",
-      type: "task",
-      raw_content: "importante: revisar contrato do designer para o MVP at\xE9 amanh\xE3",
-      source: "Telegram",
-      created_at: "2026-05-26T14:15:00Z",
-      processed: true,
-      extracted_id: "t1"
-    },
-    {
-      id: "i3",
-      type: "note",
-      raw_content: "Ideia de feature: busca sem\xE2ntica em notas usando embeddings locais com Gemini API",
-      source: "Telegram",
-      created_at: "2026-05-26T16:00:00Z",
-      processed: true,
-      extracted_id: "n1"
-    },
-    {
-      id: "i4",
-      type: "income",
-      raw_content: "Recebi R$ 3500,00 de consultoria t\xE9cnica do projeto Alpha",
-      source: "Telegram",
-      created_at: "2026-05-25T10:00:00Z",
-      processed: true,
-      extracted_id: "inc1"
-    }
-  ],
-  expenses: [
-    {
-      id: "exp1",
-      valor: 45.5,
-      categoria: "Alimenta\xE7\xE3o",
-      descricao: "Almo\xE7o de neg\xF3cios no restaurante Verde",
-      data: "2026-05-26"
-    },
-    {
-      id: "exp2",
-      valor: 120,
-      categoria: "Assinaturas",
-      descricao: "Servi\xE7o de hospedagem Cloud Run e dom\xEDnios",
-      data: "2026-05-24"
-    },
-    {
-      id: "exp3",
-      valor: 89.9,
-      categoria: "Transporte",
-      descricao: "Uber para reuni\xE3o presencial com investidor",
-      data: "2026-05-23"
-    }
-  ],
-  income: [
-    {
-      id: "inc1",
-      valor: 3500,
-      categoria: "Consultoria",
-      descricao: "Consultoria t\xE9cnica do projeto Alpha",
-      data: "2026-05-25"
-    },
-    {
-      id: "inc2",
-      valor: 1500,
-      categoria: "Mentoria",
-      descricao: "Aulas de arquitetura de software para s\xEAniors",
-      data: "2026-05-20"
-    }
-  ],
-  tasks: [
-    {
-      id: "t1",
-      titulo: "Revisar contrato do designer para o MVP",
-      status: "pending",
-      prioridade: "high",
-      prazo: "2026-05-27"
-    },
-    {
-      id: "t2",
-      titulo: "Documentar endpoints da API de Webhook",
-      status: "completed",
-      prioridade: "medium",
-      prazo: "2026-05-25"
-    },
-    {
-      id: "t3",
-      titulo: "Subir c\xF3digo inicial para reposit\xF3rio e testar build",
-      status: "completed",
-      prioridade: "high",
-      prazo: "2026-05-26"
-    },
-    {
-      id: "t4",
-      titulo: "Ajustar c\xE1lculo de streak de h\xE1bitos no Dashboard",
-      status: "pending",
-      prioridade: "medium",
-      prazo: "2026-05-28"
-    }
-  ],
-  reminders: [
-    {
-      id: "r1",
-      titulo: "Daily call com time de desenvolvimento do MVP",
-      data_hora: "2026-05-27T10:00:00Z",
-      status: "active"
-    },
-    {
-      id: "r2",
-      titulo: "Reuni\xE3o de alinhamento com investidor-anjo",
-      data_hora: "2026-05-28T15:00:00Z",
-      status: "active"
-    }
-  ],
-  goals: [
-    {
-      id: "g1",
-      titulo: "Lan\xE7ar beta fechado do LifeOS AI",
-      meta: 100,
-      progresso: 85,
-      prazo: "2026-06-15"
-    },
-    {
-      id: "g2",
-      titulo: "Faturamento de Micro-SaaS",
-      meta: 1e4,
-      progresso: 5e3,
-      prazo: "2026-08-31"
-    }
-  ],
-  habits: [
-    {
-      id: "h1",
-      nome: "Treino de For\xE7a (Academia)",
-      frequencia: "diaria",
-      streak: 5,
-      history: ["2026-05-22", "2026-05-23", "2026-05-24", "2026-05-25", "2026-05-26"]
-    },
-    {
-      id: "h2",
-      nome: "Medita\xE7\xE3o / Foco profundo",
-      frequencia: "diaria",
-      streak: 3,
-      history: ["2026-05-24", "2026-05-25", "2026-05-26"]
-    },
-    {
-      id: "h3",
-      nome: "Leitura de Papers T\xE9cnicos",
-      frequencia: "semanal",
-      streak: 2,
-      history: ["2026-05-18", "2026-05-25"]
-    }
-  ],
-  projects: [
-    {
-      id: "p1",
-      nome: "LifeOS AI core",
-      descricao: "Sistema Operacional Pessoal integrando captura via Telegram e Dashboard Executivo.",
-      status: "active",
-      progresso: 80
-    },
-    {
-      id: "p2",
-      nome: "Automator Pro",
-      descricao: "Micro-SaaS para automa\xE7\xE3o r\xE1pida de faturamento e Notas Fiscais em lote.",
-      status: "planning",
-      progresso: 10
-    }
-  ],
-  notes: [
-    {
-      id: "n1",
-      conteudo: "Feature: busca sem\xE2ntica em notas usando embeddings locais com Gemini API. A ideia \xE9 vetorizar notas em lote com o modelo gemini-embedding-2-preview e realizar busca por similaridade de cossenos no pr\xF3prio servidor Node para performance instant\xE2nea e privacidade.",
-      tags: ["SaaS", "IA", "Arquit_Software"],
-      created_at: "2026-05-26T16:00:00Z"
-    },
-    {
-      id: "n2",
-      conteudo: "Estudo de Convers\xE3o: o funil ideal para micro-SaaS de produtividade consiste em: 1) Captura org\xE2nica via Twitter/LinkedIn; 2) Ferramenta gratuita \xFAtil; 3) Up-sell para plano premium executivo focando em conveni\xEAncia radical.",
-      tags: ["Marketing", "SaaS", "Growth"],
-      created_at: "2026-05-25T11:00:00Z"
-    }
-  ],
-  ideas: [
-    {
-      id: "id1",
-      titulo: "Bot de Telegram para OCR de recibos financeiros",
-      conteudo: "Extra\xE7\xE3o autom\xE1tica de total, data e estabelecimento direto de tickets/imagens enviadas, integrado ao CFO.",
-      score: 9,
-      created_at: "2026-05-26T10:00:00Z"
-    },
-    {
-      id: "id2",
-      titulo: "Extens\xE3o de Chrome para Clippar links com IA",
-      conteudo: "Bot\xE3o no Chrome que resume o link lido e envia diretamente para o inbox do LifeOS como uma Nota inteligivel.",
-      score: 7,
-      created_at: "2026-05-24T18:00:00Z"
-    }
-  ],
-  memories: [
-    {
-      id: "m1",
-      conteudo: "Decidi focar toda a interface de captura do LifeOS AI no Telegram porque a barreira de fric\xE7\xE3o \xE9 zero. Mandar \xE1udio de 20s caminhando ou colar um link \xE9 muito mais r\xE1pido que abrir um app pesado do Notion.",
-      origem: "Telegram de C\xE9sar",
-      created_at: "2026-05-26T09:00:00Z",
-      embedding: []
-    },
-    {
-      id: "m2",
-      conteudo: "Configura\xE7\xE3o chave do banco postgres no Supabase: usar \xEDndices RLS fortes de seguran\xE7a e habilitar pg_vector para habilitar intelig\xEAncia de mem\xF3rias a qualquer momento.",
-      origem: "Telegram de C\xE9sar",
-      created_at: "2026-05-24T15:30:00Z",
-      embedding: []
-    }
-  ],
+  inbox: [],
+  expenses: [],
+  income: [],
+  tasks: [],
+  reminders: [],
+  goals: [],
+  habits: [],
+  projects: [],
+  notes: [],
+  ideas: [],
+  memories: [],
   personas: DEFAULT_PERSONAS,
-  userProfile: DEFAULT_PROFILE
+  userProfile: DEFAULT_PROFILE,
+  salaries: [],
+  creditCards: [],
+  cardExpenses: []
 };
 var currentDbState = null;
 var mapProfileToSupabase = (p) => ({
@@ -432,7 +224,10 @@ async function syncAllToSupabase(state) {
       syncTable(supabase2, "projects", state.projects),
       syncTable(supabase2, "notes", state.notes),
       syncTable(supabase2, "ideas", state.ideas),
-      syncTable(supabase2, "memories", state.memories)
+      syncTable(supabase2, "memories", state.memories),
+      syncTable(supabase2, "salaries", state.salaries || []),
+      syncTable(supabase2, "credit_cards", state.creditCards || []),
+      syncTable(supabase2, "card_expenses", state.cardExpenses || [])
     ]);
   } catch (err) {
     console.error("[Supabase Sync] Failed to sync database state:", err.message);
@@ -465,7 +260,10 @@ async function initializeDatabase() {
         projectsRes,
         notesRes,
         ideasRes,
-        memoriesRes
+        memoriesRes,
+        salariesRes,
+        creditCardsRes,
+        cardExpensesRes
       ] = await Promise.all([
         supabase2.from("user_profile").select("*").single(),
         supabase2.from("personas").select("*"),
@@ -479,7 +277,10 @@ async function initializeDatabase() {
         supabase2.from("projects").select("*").order("created_at", { ascending: false }),
         supabase2.from("notes").select("*").order("created_at", { ascending: false }),
         supabase2.from("ideas").select("*").order("created_at", { ascending: false }),
-        supabase2.from("memories").select("*").order("created_at", { ascending: false })
+        supabase2.from("memories").select("*").order("created_at", { ascending: false }),
+        supabase2.from("salaries").select("*").order("data_prevista", { ascending: false }),
+        supabase2.from("credit_cards").select("*").order("nome", { ascending: true }),
+        supabase2.from("card_expenses").select("*").order("data", { ascending: false })
       ]);
       if (profileRes.error && profileRes.error.code !== "PGRST116") {
         throw new Error(`Profile load error: ${profileRes.error.message}`);
@@ -511,7 +312,10 @@ async function initializeDatabase() {
         projects: projectsRes.data || [],
         notes: notesRes.data || [],
         ideas: ideasRes.data || [],
-        memories: memoriesRes.data || []
+        memories: memoriesRes.data || [],
+        salaries: salariesRes.data || [],
+        creditCards: creditCardsRes.data || [],
+        cardExpenses: cardExpensesRes.data || []
       };
       try {
         fs.writeFileSync(DB_FILE, JSON.stringify(currentDbState, null, 2), "utf-8");
@@ -2561,6 +2365,122 @@ async function startServer() {
       const result = await createMemory(req.body, "dashboard");
       if (result.success) res.json(result.data);
       else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/salaries", (req, res) => {
+    try {
+      const db = readDatabase();
+      const newSalary = {
+        id: "sal_" + Date.now(),
+        valor: parseFloat(req.body.valor) || 0,
+        categoria: req.body.categoria || "Geral",
+        descricao: req.body.descricao || "",
+        data_prevista: req.body.data_prevista || (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        quitada: !!req.body.quitada,
+        data_pagamento: req.body.data_pagamento || null
+      };
+      if (!db.salaries) db.salaries = [];
+      db.salaries.unshift(newSalary);
+      writeDatabase(db);
+      res.json(newSalary);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.patch("/api/db/salaries/:id", (req, res) => {
+    try {
+      const db = readDatabase();
+      if (!db.salaries) db.salaries = [];
+      const index = db.salaries.findIndex((s) => s.id === req.params.id);
+      if (index !== -1) {
+        db.salaries[index] = {
+          ...db.salaries[index],
+          ...req.body
+        };
+        writeDatabase(db);
+        res.json(db.salaries[index]);
+      } else {
+        res.status(404).json({ error: "Sal\xE1rio n\xE3o encontrado" });
+      }
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/credit-cards", (req, res) => {
+    try {
+      const db = readDatabase();
+      const newCard = {
+        id: "card_" + Date.now(),
+        nome: req.body.nome || "Novo Cart\xE3o",
+        limite: parseFloat(req.body.limite) || 0,
+        dia_fechamento: parseInt(req.body.dia_fechamento) || 5,
+        dia_vencimento: parseInt(req.body.dia_vencimento) || 12
+      };
+      if (!db.creditCards) db.creditCards = [];
+      db.creditCards.unshift(newCard);
+      writeDatabase(db);
+      res.json(newCard);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.patch("/api/db/credit-cards/:id", (req, res) => {
+    try {
+      const db = readDatabase();
+      if (!db.creditCards) db.creditCards = [];
+      const index = db.creditCards.findIndex((c) => c.id === req.params.id);
+      if (index !== -1) {
+        db.creditCards[index] = {
+          ...db.creditCards[index],
+          ...req.body
+        };
+        writeDatabase(db);
+        res.json(db.creditCards[index]);
+      } else {
+        res.status(404).json({ error: "Cart\xE3o n\xE3o encontrado" });
+      }
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/card-expenses", (req, res) => {
+    try {
+      const db = readDatabase();
+      const newExpense = {
+        id: "cexp_" + Date.now(),
+        cartao_id: req.body.cartao_id,
+        valor: parseFloat(req.body.valor) || 0,
+        categoria: req.body.categoria || "Outros",
+        descricao: req.body.descricao || "",
+        data: req.body.data || (/* @__PURE__ */ new Date()).toISOString().split("T")[0],
+        parcelas: parseInt(req.body.parcelas) || 1,
+        quitada: !!req.body.quitada
+      };
+      if (!db.cardExpenses) db.cardExpenses = [];
+      db.cardExpenses.unshift(newExpense);
+      writeDatabase(db);
+      res.json(newExpense);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.patch("/api/db/card-expenses/:id", (req, res) => {
+    try {
+      const db = readDatabase();
+      if (!db.cardExpenses) db.cardExpenses = [];
+      const index = db.cardExpenses.findIndex((e) => e.id === req.params.id);
+      if (index !== -1) {
+        db.cardExpenses[index] = {
+          ...db.cardExpenses[index],
+          ...req.body
+        };
+        writeDatabase(db);
+        res.json(db.cardExpenses[index]);
+      } else {
+        res.status(404).json({ error: "Despesa de cart\xE3o n\xE3o encontrada" });
+      }
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

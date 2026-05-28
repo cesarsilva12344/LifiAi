@@ -600,6 +600,135 @@ async function startServer() {
     }
   });
 
+  // ----------------------------------------------------
+  // NEW TABLES ENDPOINTS: salaries, creditCards, cardExpenses
+  // ----------------------------------------------------
+
+  // Salaries Endpoints
+  app.post('/api/db/salaries', (req, res) => {
+    try {
+      const db = readDatabase();
+      const newSalary = {
+        id: 'sal_' + Date.now(),
+        valor: parseFloat(req.body.valor) || 0,
+        categoria: req.body.categoria || 'Geral',
+        descricao: req.body.descricao || '',
+        data_prevista: req.body.data_prevista || new Date().toISOString().split('T')[0],
+        quitada: !!req.body.quitada,
+        data_pagamento: req.body.data_pagamento || null
+      };
+      if (!db.salaries) db.salaries = [];
+      db.salaries.unshift(newSalary);
+      writeDatabase(db);
+      res.json(newSalary);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch('/api/db/salaries/:id', (req, res) => {
+    try {
+      const db = readDatabase();
+      if (!db.salaries) db.salaries = [];
+      const index = db.salaries.findIndex(s => s.id === req.params.id);
+      if (index !== -1) {
+        db.salaries[index] = {
+          ...db.salaries[index],
+          ...req.body
+        };
+        writeDatabase(db);
+        res.json(db.salaries[index]);
+      } else {
+        res.status(404).json({ error: 'Salário não encontrado' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Credit Cards Endpoints
+  app.post('/api/db/credit-cards', (req, res) => {
+    try {
+      const db = readDatabase();
+      const newCard = {
+        id: 'card_' + Date.now(),
+        nome: req.body.nome || 'Novo Cartão',
+        limite: parseFloat(req.body.limite) || 0,
+        dia_fechamento: parseInt(req.body.dia_fechamento) || 5,
+        dia_vencimento: parseInt(req.body.dia_vencimento) || 12
+      };
+      if (!db.creditCards) db.creditCards = [];
+      db.creditCards.unshift(newCard);
+      writeDatabase(db);
+      res.json(newCard);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch('/api/db/credit-cards/:id', (req, res) => {
+    try {
+      const db = readDatabase();
+      if (!db.creditCards) db.creditCards = [];
+      const index = db.creditCards.findIndex(c => c.id === req.params.id);
+      if (index !== -1) {
+        db.creditCards[index] = {
+          ...db.creditCards[index],
+          ...req.body
+        };
+        writeDatabase(db);
+        res.json(db.creditCards[index]);
+      } else {
+        res.status(404).json({ error: 'Cartão não encontrado' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Card Expenses Endpoints
+  app.post('/api/db/card-expenses', (req, res) => {
+    try {
+      const db = readDatabase();
+      const newExpense = {
+        id: 'cexp_' + Date.now(),
+        cartao_id: req.body.cartao_id,
+        valor: parseFloat(req.body.valor) || 0,
+        categoria: req.body.categoria || 'Outros',
+        descricao: req.body.descricao || '',
+        data: req.body.data || new Date().toISOString().split('T')[0],
+        parcelas: parseInt(req.body.parcelas) || 1,
+        quitada: !!req.body.quitada
+      };
+      if (!db.cardExpenses) db.cardExpenses = [];
+      db.cardExpenses.unshift(newExpense);
+      writeDatabase(db);
+      res.json(newExpense);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch('/api/db/card-expenses/:id', (req, res) => {
+    try {
+      const db = readDatabase();
+      if (!db.cardExpenses) db.cardExpenses = [];
+      const index = db.cardExpenses.findIndex(e => e.id === req.params.id);
+      if (index !== -1) {
+        db.cardExpenses[index] = {
+          ...db.cardExpenses[index],
+          ...req.body
+        };
+        writeDatabase(db);
+        res.json(db.cardExpenses[index]);
+      } else {
+        res.status(404).json({ error: 'Despesa de cartão não encontrada' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Export Database endpoint
   app.get('/api/db/export', (req, res) => {
     try {
