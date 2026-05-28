@@ -229,6 +229,7 @@ CREATE TABLE IF NOT EXISTS ai_extractions (
   processed_at TIMESTAMPTZ
 );
 
+DROP TABLE IF EXISTS memories CASCADE;
 CREATE TABLE IF NOT EXISTS memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id),
