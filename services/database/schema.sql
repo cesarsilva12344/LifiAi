@@ -305,26 +305,65 @@ ALTER TABLE leakage_alerts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE simulator_runs ENABLE ROW LEVEL SECURITY;
 
 -- Políticas RLS (exemplos genéricos de segurança do usuário)
-CREATE POLICY IF NOT EXISTS "user_own_profile" ON user_profiles FOR ALL USING (id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_data" ON financial_transactions FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_meditation" ON meditation_sessions FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_budgets" ON budgets FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_cards" ON credit_cards FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_card_trans" ON card_transactions FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_debts" ON debts FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_debt_pmts" ON debt_payments FOR ALL USING (exists (select 1 from debts d where d.id = debt_id and d.user_id = auth.uid()));
-CREATE POLICY IF NOT EXISTS "user_own_morning" ON morning_routine_config FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_intentions" ON daily_intentions FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_mood" ON mood_logs FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_decisions" ON decisions FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_energy" ON energy_logs FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_briefings" ON briefings FOR SELECT USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_extractions" ON ai_extractions FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_memories" ON memories FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_uploads" ON financial_uploads FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_tags" ON tags FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_simulations" ON simulator_runs FOR ALL USING (user_id = auth.uid());
-CREATE POLICY IF NOT EXISTS "user_own_leakage" ON leakage_alerts FOR ALL USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "user_own_profile" ON user_profiles;
+CREATE POLICY "user_own_profile" ON user_profiles FOR ALL USING (id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_data" ON financial_transactions;
+CREATE POLICY "user_own_data" ON financial_transactions FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_meditation" ON meditation_sessions;
+CREATE POLICY "user_own_meditation" ON meditation_sessions FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_budgets" ON budgets;
+CREATE POLICY "user_own_budgets" ON budgets FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_cards" ON credit_cards;
+CREATE POLICY "user_own_cards" ON credit_cards FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_card_trans" ON card_transactions;
+CREATE POLICY "user_own_card_trans" ON card_transactions FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_debts" ON debts;
+CREATE POLICY "user_own_debts" ON debts FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_debt_pmts" ON debt_payments;
+CREATE POLICY "user_own_debt_pmts" ON debt_payments FOR ALL USING (exists (select 1 from debts d where d.id = debt_id and d.user_id = auth.uid()));
+
+DROP POLICY IF EXISTS "user_own_morning" ON morning_routine_config;
+CREATE POLICY "user_own_morning" ON morning_routine_config FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_intentions" ON daily_intentions;
+CREATE POLICY "user_own_intentions" ON daily_intentions FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_mood" ON mood_logs;
+CREATE POLICY "user_own_mood" ON mood_logs FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_decisions" ON decisions;
+CREATE POLICY "user_own_decisions" ON decisions FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_energy" ON energy_logs;
+CREATE POLICY "user_own_energy" ON energy_logs FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_briefings" ON briefings;
+CREATE POLICY "user_own_briefings" ON briefings FOR SELECT USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_extractions" ON ai_extractions;
+CREATE POLICY "user_own_extractions" ON ai_extractions FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_memories" ON memories;
+CREATE POLICY "user_own_memories" ON memories FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_uploads" ON financial_uploads;
+CREATE POLICY "user_own_uploads" ON financial_uploads FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_tags" ON tags;
+CREATE POLICY "user_own_tags" ON tags FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_simulations" ON simulator_runs;
+CREATE POLICY "user_own_simulations" ON simulator_runs FOR ALL USING (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "user_own_leakage" ON leakage_alerts;
+CREATE POLICY "user_own_leakage" ON leakage_alerts FOR ALL USING (user_id = auth.uid());
 
 -- ==========================================
 -- VIEWS & FUNÇÕES AUXILIARES
