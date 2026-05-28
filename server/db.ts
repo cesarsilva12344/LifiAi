@@ -420,7 +420,16 @@ async function syncAllToSupabase(state: DatabaseState) {
 export async function initializeDatabase(): Promise<DatabaseState> {
   if (currentDbState) return currentDbState;
 
-  const { isSupabaseConfigured, supabase } = await import('../services/database/client');
+  let isSupabaseConfigured = false;
+  let supabase: any = null;
+
+  try {
+    const clientModule = await import('../services/database/client');
+    isSupabaseConfigured = clientModule.isSupabaseConfigured;
+    supabase = clientModule.supabase;
+  } catch (err: any) {
+    console.error('[LifeOS AI] Failed to import database client:', err?.message || err);
+  }
 
   if (isSupabaseConfigured && supabase) {
     console.log('[LifeOS AI] Supabase detected. Initializing data from remote database...');
@@ -497,7 +506,7 @@ export async function initializeDatabase(): Promise<DatabaseState> {
       console.log('[LifeOS AI] Database initialized from Supabase successfully.');
       return currentDbState;
     } catch (error: any) {
-      console.error('[LifeOS AI] Error loading from Supabase, falling back to local JSON:', error.message);
+      console.error('[LifeOS AI] Error loading from Supabase, falling back to local JSON:', error?.message || error);
     }
   }
 
@@ -510,8 +519,8 @@ export async function initializeDatabase(): Promise<DatabaseState> {
       const data = fs.readFileSync(DB_FILE, 'utf-8');
       currentDbState = JSON.parse(data) as DatabaseState;
     }
-  } catch (error) {
-    console.error('Falha ao ler banco de dados JSON:', error);
+  } catch (error: any) {
+    console.error('Falha ao ler banco de dados JSON:', error?.message || error);
     currentDbState = DEFAULT_STATE;
   }
   return currentDbState;
