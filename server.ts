@@ -822,9 +822,21 @@ async function startServer() {
     });
   }
 
+  if (process.env.VERCEL) {
+    // In Vercel serverless environment, we return the configured app instance
+    return app;
+  }
+
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[LifeOS AI] Server running smoothly on http://localhost:${PORT}`);
   });
+  return app;
 }
 
-startServer();
+const appPromise = startServer();
+
+// Vercel serverless function entrypoint handler
+export default async (req: any, res: any) => {
+  const app = await appPromise;
+  return app(req, res);
+};
