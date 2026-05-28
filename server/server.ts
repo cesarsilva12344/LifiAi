@@ -375,11 +375,43 @@ async function startServer() {
     // 3. AI Parsing & Classification (AI Router)
     const { intent, extracted_data, explanation, confidence } = await runRouter(text);
 
-    // 4. Database write via Action Engine
-    const actionResult = await executeFromIntent(intent, extracted_data, msg.source);
+    // 4. Three-tier confidence decision
+    let reply = '';
+    let saved = false;
+    let extractionStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVIEW' = 'PENDING';
 
-    // 5. Generate contextual persona reply
-    const reply = await runPersona(text, history);
+    const activePersona = getActivePersona();
+
+    if (confidence >= 0.85) {
+      // Auto-approved
+      extractionStatus = 'APPROVED';
+      const actionResult = await executeFromIntent(intent, extracted_data, msg.source);
+      saved = actionResult.success;
+      reply = await runPersona(text, history);
+    } else if (confidence >= 0.60) {
+      // Review staging
+      extractionStatus = 'REVIEW';
+      saved = false;
+      reply = `🔍 **[${activePersona.nome}]** Recebi sua mensagem, César. Como a confiança da extração foi de ${Math.round(confidence * 100)}% (abaixo do limiar de 85%), salvei-a de forma segura na sua **Fila de Validação IA** no Dashboard para sua revisão manual antes de gravar definitivamente.`;
+    } else {
+      // Rejected
+      extractionStatus = 'REJECTED';
+      saved = false;
+      reply = `❓ **[${activePersona.nome}]** Não consegui extrair as informações com clareza suficiente (${Math.round(confidence * 100)}% confiança). Poderia reformular a mensagem fornecendo o valor exato, a categoria e a descrição detalhada?`;
+    }
+
+    // Save extraction history
+    const db = readDatabase();
+    db.aiExtractions = db.aiExtractions || [];
+    db.aiExtractions.unshift({
+      id: 'ext_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+      source: msg.source as any,
+      confidence,
+      extracted_json: { intent, data: extracted_data, explanation },
+      status: extractionStatus,
+      created_at: new Date().toISOString()
+    });
+    writeDatabase(db);
 
     addTelegramHistory('bot', reply);
 
@@ -389,7 +421,8 @@ async function startServer() {
       confidence,
       explanation,
       parsed_data: extracted_data,
-      saved: actionResult.success,
+      saved,
+      extractionStatus
     };
   }
 
@@ -506,6 +539,307 @@ async function startServer() {
       res.status(500).json({ error: err.message });
     }
   });
+  // POST Manual Decisions / Review endpoints
+  app.post('/api/db/decisions', async (req, res) => {
+    try {
+      const { createDecision } = await import('../services/engine/action');
+      const result = await createDecision(req.body, 'dashboard');
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch('/api/db/decisions/:id', async (req, res) => {
+    try {
+      const { updateDecision } = await import('../services/engine/action');
+      const result = await updateDecision(req.params.id, req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Energy tracking endpoints
+  app.post('/api/db/energy', async (req, res) => {
+    try {
+      const { createEnergyLog } = await import('../services/engine/action');
+      const result = await createEnergyLog(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/db/energy/avg', (req, res) => {
+    try {
+      const db = readDatabase();
+      const logs = db.energyLogs || [];
+      const hourlyAvg: { [hour: number]: { count: number; sum: number } } = {};
+      logs.forEach(l => {
+        const hour = new Date(l.created_at || new Date().toISOString()).getHours();
+        if (!hourlyAvg[hour]) hourlyAvg[hour] = { count: 0, sum: 0 };
+        hourlyAvg[hour].count += 1;
+        hourlyAvg[hour].sum += l.energy_level;
+      });
+      const result = Object.keys(hourlyAvg).map(h => ({
+        hour: parseInt(h),
+        avg_energy: parseFloat((hourlyAvg[parseInt(h)].sum / hourlyAvg[parseInt(h)].count).toFixed(2))
+      })).sort((a,b) => a.hour - b.hour);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Meditation sessions
+  app.post('/api/db/meditation', async (req, res) => {
+    try {
+      const { createMeditationSession } = await import('../services/engine/action');
+      const result = await createMeditationSession(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/db/meditation/stats', (req, res) => {
+    try {
+      const db = readDatabase();
+      const sessions = db.meditationSessions || [];
+      const total_sessions = sessions.length;
+      const total_minutes = Math.round(sessions.reduce((sum, s) => sum + s.duration_seconds, 0) / 60);
+      const avg_mood_lift = total_sessions > 0
+        ? parseFloat((sessions.reduce((sum, s) => sum + (s.mood_after - s.mood_before), 0) / total_sessions).toFixed(2))
+        : 0;
+      const last_session = total_sessions > 0 ? sessions[0].completed_at : null;
+
+      res.json({ total_sessions, total_minutes, avg_mood_lift, last_session });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Daily intention
+  app.post('/api/db/intentions', async (req, res) => {
+    try {
+      const { createDailyIntention } = await import('../services/engine/action');
+      const result = await createDailyIntention(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Mood log
+  app.post('/api/db/mood', async (req, res) => {
+    try {
+      const { createMoodLog } = await import('../services/engine/action');
+      const result = await createMoodLog(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Debt endpoints
+  app.post('/api/db/debts', async (req, res) => {
+    try {
+      const { createDebt } = await import('../services/engine/action');
+      const result = await createDebt(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/db/debt-payments', async (req, res) => {
+    try {
+      const { createDebtPayment } = await import('../services/engine/action');
+      const result = await createDebtPayment(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Budgets
+  app.post('/api/db/budgets', async (req, res) => {
+    try {
+      const { createBudget } = await import('../services/engine/action');
+      const result = await createBudget(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Financial Upload & AI Spreadsheet Import Integration
+  app.post('/api/db/import-spreadsheet', async (req, res) => {
+    try {
+      const { fileUrl } = req.body;
+      const db = readDatabase();
+      
+      // Simulate spreadsheet processing by extracting mocked rows
+      const extractedRows = [
+        { id: 'bdg_ex1', category_id: 'Alimentação', valor_planejado: 800, mes: 5, ano: 2026 },
+        { id: 'bdg_ex2', category_id: 'Transporte', valor_planejado: 400, mes: 5, ano: 2026 },
+        { id: 'bdg_ex3', category_id: 'Moradia', valor_planejado: 2500, mes: 5, ano: 2026 },
+        { id: 'bdg_ex4', category_id: 'Lazer', valor_planejado: 600, mes: 5, ano: 2026 },
+        { id: 'bdg_ex5', category_id: 'Saúde', valor_planejado: 300, mes: 5, ano: 2026 }
+      ];
+
+      db.budgets = db.budgets || [];
+      extractedRows.forEach(row => {
+        db.budgets = db.budgets.filter(b => !(b.category_id === row.category_id && b.mes === row.mes && b.ano === row.ano));
+        db.budgets.unshift({
+          id: row.id,
+          category_id: row.category_id,
+          valor_planejado: row.valor_planejado,
+          valor_realizado: 0,
+          mes: row.mes,
+          ano: row.ano
+        });
+      });
+
+      const dbAny = db as any;
+      dbAny.financialUploads = dbAny.financialUploads || [];
+      dbAny.financialUploads.unshift({
+        id: 'upload_' + Date.now(),
+        file_url: fileUrl,
+        file_name: path.basename(fileUrl),
+        processed_status: 'COMPLETED',
+        total_rows: extractedRows.length,
+        created_at: new Date().toISOString()
+      });
+
+      writeDatabase(db);
+      res.json({ success: true, rows: extractedRows.length });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET Financial Reconciliation
+  app.get('/api/db/financial-reconciliation', (req, res) => {
+    try {
+      const db = readDatabase();
+      const budgets = db.budgets || [];
+      const expenses = db.expenses || [];
+      const result = budgets.map(b => {
+        const realizado = expenses
+          .filter(e => e.categoria.toLowerCase() === b.category_id.toLowerCase() && new Date(e.data + 'T12:00:00').getMonth() + 1 === b.mes && new Date(e.data + 'T12:00:00').getFullYear() === b.ano)
+          .reduce((sum, e) => sum + e.valor, 0);
+        return {
+          id: b.id,
+          category_id: { name: b.category_id },
+          mes: b.mes,
+          ano: b.ano,
+          valor_planejado: b.valor_planejado,
+          valor_realizado: realizado,
+          diferenca: b.valor_planejado - realizado,
+          status_conciliacao: Math.abs(b.valor_planejado - realizado) < 1 ? 'OK' : 'DIFERENCA'
+        };
+      });
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Simulator scenario run "E Se..."
+  app.post('/api/db/simulator/run', async (req, res) => {
+    try {
+      const params = req.body; // { months, newHires, adSpend, newDebt, priceHike }
+      const db = readDatabase();
+      
+      const totalIncome = db.income.reduce((sum, item) => sum + item.valor, 0);
+      const totalExpenses = db.expenses.reduce((sum, item) => sum + item.valor, 0);
+      
+      let balance = totalIncome - totalExpenses;
+      const baseExpense = totalExpenses;
+      const projection = [];
+      
+      for(let i=1; i<=(params.months || 6); i++) {
+        // Deterministic simulation formula matching Block 2
+        balance += (totalIncome * (1 + (params.priceHike || 0)/100)) - baseExpense - (params.newHires || 0) * 5000 - (params.adSpend || 0) - (params.newDebt || 0);
+        projection.push({ month: i, balance, risk: balance < 0 ? 'HIGH' : 'LOW' });
+      }
+
+      db.simulatorRuns = db.simulatorRuns || [];
+      db.simulatorRuns.unshift({
+        id: 'sim_run_' + Date.now(),
+        params,
+        result: projection,
+        created_at: new Date().toISOString()
+      });
+      writeDatabase(db);
+
+      res.json({ projection });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // GET AI Extractions Queue
+  app.get('/api/db/ai-extractions', (req, res) => {
+    try {
+      const db = readDatabase();
+      const extractions = (db.aiExtractions || []).filter(e => e.status === 'PENDING' || e.status === 'REVIEW');
+      res.json(extractions);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST AI Extractions Validation Action (Human-In-The-Loop)
+  app.post('/api/db/ai-extractions/:id/validate', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, extracted_json } = req.body; // status: 'APPROVED' | 'REJECTED'
+      const { updateAiExtractionStatus } = await import('../services/engine/action');
+      const result = await updateAiExtractionStatus(id, status, extracted_json);
+      if (result.success) {
+        res.json({ success: true, data: result.data });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Daily Briefing Generator (generate-briefing mock)
+  app.post('/api/db/generate-briefing', async (req, res) => {
+    try {
+      const db = readDatabase();
+      const totalIncome = db.income.reduce((sum, item) => sum + item.valor, 0);
+      const totalExpenses = db.expenses.reduce((sum, item) => sum + item.valor, 0);
+      const net = totalIncome - totalExpenses;
+      
+      const urgentTasks = db.tasks.filter(t => t.status === 'pending').slice(0, 2).map(t => t.titulo).join(' e ');
+      const activePersona = getActivePersona();
+
+      const text = `🌅 **[${activePersona.nome}] Ritual das 07:00:**\n\n🧘 *Respire:* 4s in → 4s hold → 6s out (3x).\n💰 *Finanças:* Seu saldo é de R$ ${net.toFixed(2)}. Monitore a categoria Alimentação.\n📌 *Prioridades:* Resolver: ${urgentTasks || 'Nenhuma tarefa pendente'}.\n⚡ *Foco:* Programe um bloco de 60min Zen hoje às 10h.\n💡 *Insight:* "A execução constante mói qualquer obstáculo." Foco absoluto hoje!`;
+
+      const { createBriefing } = await import('../services/engine/action');
+      const result = await createBriefing({ content: text });
+      
+      if (result.success) res.json({ status: 'ok', text });
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
 
   // POST Manual Expenses / Income endpoints
   app.post('/api/db/expenses/manual', async (req, res) => {
@@ -517,7 +851,6 @@ async function startServer() {
       res.status(500).json({ error: err.message });
     }
   });
-
   app.post('/api/db/income/manual', async (req, res) => {
     try {
       const result = await createIncome(req.body, 'dashboard');

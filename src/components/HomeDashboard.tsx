@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { DatabaseState } from '../types';
 import { showToast } from './Toast';
+import DailyBriefingCard from './DailyBriefingCard';
 
 interface HomeDashboardProps {
   data: DatabaseState;
@@ -384,6 +385,9 @@ export default function HomeDashboard({ data, onRefresh, theme = 'light' }: Home
                 Novo Projeto
               </button>
             </div>
+
+            {/* Daily Briefing Card */}
+            <DailyBriefingCard data={data} onRefresh={onRefresh} theme={theme} />
 
             {/* 4. MOBILLS METRICS HEADER ROW (4 Cards) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

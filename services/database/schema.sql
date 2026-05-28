@@ -1,356 +1,443 @@
 -- ═══════════════════════════════════════════════════════
--- LifeOS AI — Schema do Supabase
--- ═══════════════════════════════════════════════════════
--- Instruções:
--- 1. Acesse: https://supabase.com → seu projeto → SQL Editor
--- 2. Cole todo este conteúdo e clique em "Run"
--- 3. Configure as variáveis de ambiente na Vercel:
---    SUPABASE_URL=https://xxxx.supabase.co
---    SUPABASE_SERVICE_KEY=eyJ... (service_role key)
+-- LifeOS AI — Schema do Supabase (Blueprint Master Consolidado)
 -- ═══════════════════════════════════════════════════════
 
--- Perfil do usuário (linha única, id fixo = 1)
-CREATE TABLE IF NOT EXISTS user_profile (
-  id          INTEGER PRIMARY KEY DEFAULT 1,
-  nome        TEXT    NOT NULL DEFAULT 'Usuário',
-  app_name    TEXT    NOT NULL DEFAULT 'LifeOS AI',
-  gemini_api_key     TEXT DEFAULT '',
-  deepseek_api_key   TEXT DEFAULT '',
-  qwen_api_key       TEXT DEFAULT '',
-  telegram_bot_token TEXT DEFAULT '',
-  telegram_chat_id   TEXT DEFAULT '',
-  interesses  JSONB   DEFAULT '[]',
-  objetivos   JSONB   DEFAULT '[]',
-  preferencias JSONB  DEFAULT '[]',
-  contexto    TEXT    DEFAULT '',
-  updated_at  TIMESTAMPTZ DEFAULT NOW()
+-- Habilitar pgvector para busca semântica real nas memórias
+CREATE EXTENSION IF NOT EXISTS vector;
+
+-- ==========================================
+-- CORE & AUTH
+-- ==========================================
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  telegram_id BIGINT UNIQUE,
+  nome TEXT NOT NULL,
+  email TEXT UNIQUE,
+  telefone TEXT,
+  status TEXT CHECK (status IN ('active', 'inactive')) DEFAULT 'active',
+  config JSONB DEFAULT '{}',
+  life_score NUMERIC(4,2) DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Linha padrão
-INSERT INTO user_profile (id, nome, app_name)
-VALUES (1, 'Usuário', 'LifeOS AI')
-ON CONFLICT (id) DO NOTHING;
-
--- ───────────────────────────────────────────────────────
--- Personas (agentes de IA)
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS personas (
-  id          TEXT PRIMARY KEY,
-  nome        TEXT    NOT NULL,
-  descricao   TEXT    DEFAULT '',
-  prompt_base TEXT    DEFAULT '',
-  ativa       BOOLEAN DEFAULT FALSE,
-  icon        TEXT    DEFAULT 'Brain',
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  parent_id UUID REFERENCES categories(id),
+  nome TEXT NOT NULL,
+  tipo TEXT CHECK (tipo IN ('DESPESA', 'RECEITA', 'ATIVO', 'PASSIVO')),
+  nivel INT DEFAULT 0,
+  cor TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Apenas uma persona ativa por vez
-CREATE UNIQUE INDEX IF NOT EXISTS idx_personas_ativa
-  ON personas (ativa) WHERE ativa = TRUE;
-
--- ───────────────────────────────────────────────────────
--- Inbox (log cronológico de todas as capturas)
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS inbox (
-  id           TEXT PRIMARY KEY,
-  type         TEXT    NOT NULL DEFAULT 'note',
-  raw_content  TEXT    NOT NULL DEFAULT '',
-  source       TEXT    DEFAULT 'Telegram',
-  created_at   TIMESTAMPTZ DEFAULT NOW(),
-  processed    BOOLEAN DEFAULT FALSE,
-  extracted_id TEXT
+CREATE TABLE IF NOT EXISTS tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  nome TEXT NOT NULL,
+  cor TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_inbox_created_at ON inbox (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_inbox_type ON inbox (type);
-
--- ───────────────────────────────────────────────────────
--- Despesas
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS expenses (
-  id        TEXT PRIMARY KEY,
-  valor     NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  categoria TEXT DEFAULT 'Geral',
-  descricao TEXT DEFAULT '',
-  data      DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- ==========================================
+-- FINANCEIRO AVANÇADO
+-- ==========================================
+CREATE TABLE IF NOT EXISTS credit_cards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  nome TEXT NOT NULL,
+  limite_total DECIMAL(12,2) CHECK (limite_total >= 0),
+  dia_fechamento INT CHECK (dia_fechamento BETWEEN 1 AND 31),
+  dia_vencimento INT CHECK (dia_vencimento BETWEEN 1 AND 31),
+  ativo BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_expenses_data ON expenses (data DESC);
-CREATE INDEX IF NOT EXISTS idx_expenses_categoria ON expenses (categoria);
-
--- ───────────────────────────────────────────────────────
--- Receitas
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS income (
-  id        TEXT PRIMARY KEY,
-  valor     NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  categoria TEXT DEFAULT 'Receita',
-  descricao TEXT DEFAULT '',
-  data      DATE NOT NULL DEFAULT CURRENT_DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS card_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  card_id UUID REFERENCES credit_cards(id),
+  user_id UUID REFERENCES auth.users(id),
+  category_id UUID REFERENCES categories(id),
+  descricao TEXT,
+  valor DECIMAL(12,2) CHECK (valor > 0),
+  parcelas INT DEFAULT 1,
+  parcela_atual INT DEFAULT 1,
+  data_compra DATE,
+  quitada BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_income_data ON income (data DESC);
-
--- ───────────────────────────────────────────────────────
--- Tarefas
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS tasks (
-  id         TEXT PRIMARY KEY,
-  titulo     TEXT NOT NULL,
-  status     TEXT DEFAULT 'pending'
-             CHECK (status IN ('pending', 'completed')),
-  prioridade TEXT DEFAULT 'medium'
-             CHECK (prioridade IN ('high', 'medium', 'low')),
-  prazo      DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS budgets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  category_id UUID REFERENCES categories(id),
+  valor_planejado DECIMAL(12,2) CHECK (valor_planejado >= 0),
+  valor_realizado DECIMAL(12,2) DEFAULT 0,
+  mes INT CHECK (mes BETWEEN 1 AND 12),
+  ano INT,
+  UNIQUE(user_id, category_id, mes, ano),
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks (status);
-CREATE INDEX IF NOT EXISTS idx_tasks_prioridade ON tasks (prioridade);
-
--- ───────────────────────────────────────────────────────
--- Lembretes
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS reminders (
-  id        TEXT PRIMARY KEY,
-  titulo    TEXT NOT NULL,
-  data_hora TIMESTAMPTZ,
-  status    TEXT DEFAULT 'active'
-            CHECK (status IN ('active', 'completed', 'canceled')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS debts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  descricao TEXT NOT NULL,
+  credor TEXT,
+  valor_original DECIMAL(12,2),
+  saldo_atual DECIMAL(12,2),
+  vencimento DATE,
+  status TEXT CHECK (status IN ('ABERTA', 'PARCIAL', 'QUITADA', 'ATRASADA')) DEFAULT 'ABERTA',
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_reminders_status ON reminders (status);
-CREATE INDEX IF NOT EXISTS idx_reminders_data_hora ON reminders (data_hora);
-
--- ───────────────────────────────────────────────────────
--- Metas
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS goals (
-  id         TEXT PRIMARY KEY,
-  titulo     TEXT NOT NULL,
-  meta       NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  progresso  NUMERIC(12, 2) DEFAULT 0,
-  prazo      DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS debt_payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  debt_id UUID REFERENCES debts(id),
+  valor_pago DECIMAL(12,2) CHECK (valor_pago > 0),
+  data_pagamento DATE DEFAULT CURRENT_DATE,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ───────────────────────────────────────────────────────
--- Hábitos
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS habits (
-  id         TEXT PRIMARY KEY,
-  nome       TEXT NOT NULL,
-  frequencia TEXT DEFAULT 'diaria'
-             CHECK (frequencia IN ('diaria', 'semanal')),
-  streak     INTEGER DEFAULT 0,
-  history    JSONB DEFAULT '[]',   -- array de strings 'YYYY-MM-DD'
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS financial_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  account_id UUID,
+  category_id UUID REFERENCES categories(id),
+  tipo TEXT CHECK (tipo IN ('RECEITA', 'DESPESA', 'TRANSFERENCIA')),
+  valor DECIMAL(12,2),
+  descricao TEXT,
+  data_movimento DATE,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ───────────────────────────────────────────────────────
--- Projetos
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS projects (
-  id         TEXT PRIMARY KEY,
-  nome       TEXT NOT NULL,
-  descricao  TEXT DEFAULT '',
-  status     TEXT DEFAULT 'planning'
-             CHECK (status IN ('planning', 'active', 'completed', 'on_hold')),
-  progresso  INTEGER DEFAULT 0
-             CHECK (progresso >= 0 AND progresso <= 100),
-  cliente    TEXT DEFAULT '',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS transaction_tags (
+  transaction_id UUID REFERENCES financial_transactions(id) ON DELETE CASCADE,
+  tag_id UUID REFERENCES tags(id) ON DELETE CASCADE,
+  PRIMARY KEY (transaction_id, tag_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_projects_status ON projects (status);
-
--- ───────────────────────────────────────────────────────
--- Notas
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS notes (
-  id         TEXT PRIMARY KEY,
-  conteudo   TEXT NOT NULL,
-  tags       JSONB DEFAULT '[]',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- ==========================================
+-- UPLOAD & CONCILIAÇÃO
+-- ==========================================
+CREATE TABLE IF NOT EXISTS financial_uploads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  file_url TEXT NOT NULL,
+  file_name TEXT,
+  processed_status TEXT CHECK (processed_status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'ERROR')) DEFAULT 'PENDING',
+  total_rows INT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ───────────────────────────────────────────────────────
--- Ideias
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS ideas (
-  id         TEXT PRIMARY KEY,
-  titulo     TEXT NOT NULL,
-  conteudo   TEXT DEFAULT '',
-  score      INTEGER DEFAULT 5
-             CHECK (score >= 1 AND score <= 10),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+-- ==========================================
+-- MEDITAÇÃO & RITUAL MATINAL
+-- ==========================================
+CREATE TABLE IF NOT EXISTS meditation_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  duration_seconds INT CHECK (duration_seconds BETWEEN 60 AND 3600),
+  type TEXT CHECK (type IN ('breathing', 'guided', 'gratitude', 'visualization', 'body_scan')),
+  mood_before INT CHECK (mood_before BETWEEN 1 AND 10),
+  mood_after INT CHECK (mood_after BETWEEN 1 AND 10),
+  notes TEXT,
+  completed_at TIMESTAMPTZ DEFAULT now(),
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ───────────────────────────────────────────────────────
--- Memórias (com suporte a embedding vetorial)
--- ───────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS morning_routine_config (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) UNIQUE,
+  wake_up_time TIME DEFAULT '07:00:00',
+  meditation_enabled BOOLEAN DEFAULT true,
+  meditation_duration INT DEFAULT 600,
+  briefing_enabled BOOLEAN DEFAULT true,
+  gratitude_prompt BOOLEAN DEFAULT true,
+  intention_setting BOOLEAN DEFAULT true,
+  timezone TEXT DEFAULT 'America/Sao_Paulo',
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
 
--- OPCIONAL: habilite pgvector para busca semântica real
--- (rodar separado antes das tabelas se quiser usar VECTOR):
--- CREATE EXTENSION IF NOT EXISTS vector;
+CREATE TABLE IF NOT EXISTS daily_intentions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  date DATE DEFAULT CURRENT_DATE,
+  intention_text TEXT,
+  focus_area TEXT,
+  completed BOOLEAN DEFAULT false,
+  reflection TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, date)
+);
+
+CREATE TABLE IF NOT EXISTS mood_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  mood_score INT CHECK (mood_score BETWEEN 1 AND 10),
+  energy_level INT CHECK (energy_level BETWEEN 1 AND 10),
+  context TEXT,
+  recorded_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- ==========================================
+-- COGNITIVO & PRODUTIVIDADE
+-- ==========================================
+CREATE TABLE IF NOT EXISTS decisions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  title TEXT NOT NULL,
+  context TEXT,
+  expected_outcome TEXT,
+  actual_outcome TEXT,
+  review_at DATE,
+  reviewed BOOLEAN DEFAULT false,
+  status TEXT CHECK (status IN ('ACTIVE', 'REVIEW_PENDING', 'REVIEWED', 'ARCHIVED')) DEFAULT 'ACTIVE',
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS energy_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  task_id UUID,
+  energy_level INT CHECK (energy_level BETWEEN 1 AND 10),
+  context JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS briefings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  content TEXT NOT NULL,
+  date DATE DEFAULT CURRENT_DATE,
+  generated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, date)
+);
+
+-- ==========================================
+-- IA & CAPTURA
+-- ==========================================
+CREATE TABLE IF NOT EXISTS ai_extractions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  message_id UUID,
+  user_id UUID REFERENCES auth.users(id),
+  source TEXT CHECK (source IN ('text', 'voice', 'image', 'telegram')),
+  confidence DECIMAL(3,2) CHECK (confidence BETWEEN 0 AND 1),
+  extracted_json JSONB,
+  status TEXT CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'REVIEW')) DEFAULT 'PENDING',
+  created_at TIMESTAMPTZ DEFAULT now(),
+  processed_at TIMESTAMPTZ
+);
 
 CREATE TABLE IF NOT EXISTS memories (
-  id         TEXT PRIMARY KEY,
-  conteudo   TEXT NOT NULL,
-  embedding  JSONB DEFAULT 'null',
-  -- Se pgvector habilitado, substituir a linha acima por:
-  -- embedding VECTOR(1536),
-  origem     TEXT DEFAULT 'Telegram',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  content TEXT NOT NULL,
+  embedding vector(1536),
+  origem TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_memories_created_at ON memories (created_at DESC);
-
--- ───────────────────────────────────────────────────────
--- Histórico do Telegram
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS telegram_history (
-  id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  sender    TEXT NOT NULL DEFAULT 'user'
-            CHECK (sender IN ('user', 'bot')),
-  text      TEXT NOT NULL,
-  timestamp TIMESTAMPTZ DEFAULT NOW()
+-- ==========================================
+-- AUDITORIA & SISTEMA
+-- ==========================================
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tabela TEXT,
+  registro_id UUID,
+  operacao TEXT,
+  antes JSONB,
+  depois JSONB,
+  usuario_id UUID,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_telegram_history_ts ON telegram_history (timestamp DESC);
-
--- ───────────────────────────────────────────────────────
--- Salários (Recebíveis / Finanças)
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS salaries (
-  id             TEXT PRIMARY KEY,
-  valor          NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  categoria      TEXT NOT NULL DEFAULT 'Geral',
-  descricao      TEXT DEFAULT '',
-  data_prevista  DATE NOT NULL DEFAULT CURRENT_DATE,
-  quitada        BOOLEAN DEFAULT FALSE,
-  data_pagamento DATE,
-  created_at     TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS simulator_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id),
+  params JSONB NOT NULL,
+  result JSONB NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_salaries_data_prevista ON salaries (data_prevista DESC);
-
--- ───────────────────────────────────────────────────────
--- Cartões de Crédito
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS credit_cards (
-  id             TEXT PRIMARY KEY,
-  nome           TEXT NOT NULL,
-  limite         NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  dia_fechamento INTEGER NOT NULL DEFAULT 5,
-  dia_vencimento INTEGER NOT NULL DEFAULT 12,
-  created_at     TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS leakage_alerts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id),
+  category TEXT NOT NULL,
+  detected_change NUMERIC NOT NULL,
+  description TEXT,
+  dismissed BOOLEAN DEFAULT false,
+  detected_at TIMESTAMPTZ DEFAULT now()
 );
 
--- ───────────────────────────────────────────────────────
--- Despesas com Cartão de Crédito
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS card_expenses (
-  id             TEXT PRIMARY KEY,
-  cartao_id      TEXT REFERENCES credit_cards(id) ON DELETE CASCADE,
-  valor          NUMERIC(12, 2) NOT NULL DEFAULT 0,
-  categoria      TEXT NOT NULL DEFAULT 'Outros',
-  descricao      TEXT DEFAULT '',
-  data           DATE NOT NULL DEFAULT CURRENT_DATE,
-  parcelas       INTEGER DEFAULT 1,
-  quitada        BOOLEAN DEFAULT FALSE,
-  created_at     TIMESTAMPTZ DEFAULT NOW()
-);
+-- ==========================================
+-- ÍNDICES OTIMIZADOS
+-- ==========================================
+CREATE INDEX IF NOT EXISTS idx_financial_transactions_user_date ON financial_transactions(user_id, data_movimento);
+CREATE INDEX IF NOT EXISTS idx_meditation_user_date ON meditation_sessions(user_id, completed_at);
+CREATE INDEX IF NOT EXISTS idx_mood_user_context ON mood_logs(user_id, context, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_budgets_user_period ON budgets(user_id, ano, mes);
+CREATE INDEX IF NOT EXISTS idx_memories_embedding ON memories USING ivfflat (embedding vector_cosine_ops);
+CREATE INDEX IF NOT EXISTS idx_leakage_user_dismissed ON leakage_alerts(user_id, dismissed);
 
-CREATE INDEX IF NOT EXISTS idx_card_expenses_data ON card_expenses (data DESC);
-CREATE INDEX IF NOT EXISTS idx_card_expenses_cartao ON card_expenses (cartao_id);
+-- ==========================================
+-- ROW LEVEL SECURITY (RLS)
+-- ==========================================
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE credit_cards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE card_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE debts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE debt_payments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE financial_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE meditation_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE morning_routine_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_intentions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE mood_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE decisions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE energy_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE briefings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ai_extractions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE financial_uploads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leakage_alerts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE simulator_runs ENABLE ROW LEVEL SECURITY;
 
--- ───────────────────────────────────────────────────────
--- dcalendar (Tabela Dimensão Calendário para BI e Analytics)
--- ───────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS dcalendar (
-  data             DATE PRIMARY KEY,
-  ano              INTEGER NOT NULL,
-  mes              INTEGER NOT NULL,
-  nome_mes         TEXT NOT NULL,
-  dia              INTEGER NOT NULL,
-  dia_semana       INTEGER NOT NULL,
-  nome_dia_semana  TEXT NOT NULL,
-  trimestre        INTEGER NOT NULL,
-  semestre         INTEGER NOT NULL,
-  fim_de_semana    BOOLEAN NOT NULL
-);
+-- Políticas RLS (exemplos genéricos de segurança do usuário)
+CREATE POLICY IF NOT EXISTS "user_own_profile" ON user_profiles FOR ALL USING (id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_data" ON financial_transactions FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_meditation" ON meditation_sessions FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_budgets" ON budgets FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_cards" ON credit_cards FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_card_trans" ON card_transactions FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_debts" ON debts FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_debt_pmts" ON debt_payments FOR ALL USING (exists (select 1 from debts d where d.id = debt_id and d.user_id = auth.uid()));
+CREATE POLICY IF NOT EXISTS "user_own_morning" ON morning_routine_config FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_intentions" ON daily_intentions FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_mood" ON mood_logs FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_decisions" ON decisions FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_energy" ON energy_logs FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_briefings" ON briefings FOR SELECT USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_extractions" ON ai_extractions FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_memories" ON memories FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_uploads" ON financial_uploads FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_tags" ON tags FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_simulations" ON simulator_runs FOR ALL USING (user_id = auth.uid());
+CREATE POLICY IF NOT EXISTS "user_own_leakage" ON leakage_alerts FOR ALL USING (user_id = auth.uid());
 
--- Script para popular dcalendar de 2025 até 2030 automaticamente se estiver vazia
-CREATE OR REPLACE FUNCTION populate_dcalendar() RETURNS void AS $$
+-- ==========================================
+-- VIEWS & FUNÇÕES AUXILIARES
+-- ==========================================
+
+-- View: Resumo do Cartão de Crédito
+CREATE OR REPLACE VIEW v_card_summary AS
+SELECT 
+  c.id AS card_id,
+  c.nome,
+  c.limite_total,
+  COALESCE(SUM(ct.valor) FILTER (WHERE ct.quitada = false), 0) AS limite_consumido,
+  c.limite_total - COALESCE(SUM(ct.valor) FILTER (WHERE ct.quitada = false), 0) AS limite_disponivel,
+  COUNT(*) FILTER (WHERE ct.quitada = false) AS transacoes_abertas
+FROM credit_cards c
+LEFT JOIN card_transactions ct ON ct.card_id = c.id
+WHERE c.ativo = true
+GROUP BY c.id, c.nome, c.limite_total;
+
+-- View: Estatísticas de Meditação
+CREATE OR REPLACE VIEW v_meditation_stats AS
+SELECT 
+  user_id,
+  COUNT(*) as total_sessions,
+  SUM(duration_seconds) as total_minutes,
+  AVG(mood_after - mood_before) as avg_mood_lift,
+  MAX(completed_at) as last_session
+FROM meditation_sessions
+GROUP BY user_id;
+
+-- View: Conciliação Financeira (Planejado vs Real)
+CREATE OR REPLACE VIEW v_financial_reconciliation AS
+SELECT 
+  b.id,
+  b.category_id,
+  b.mes,
+  b.ano,
+  b.valor_planejado,
+  COALESCE(SUM(ft.valor), 0) as valor_realizado,
+  b.valor_planejado - COALESCE(SUM(ft.valor), 0) as diferenca,
+  CASE 
+    WHEN ABS(b.valor_planejado - COALESCE(SUM(ft.valor), 0)) < 1 THEN 'OK'
+    ELSE 'DIFERENCA'
+  END as status_conciliacao
+FROM budgets b
+LEFT JOIN financial_transactions ft ON b.category_id = ft.category_id 
+  AND EXTRACT(MONTH FROM ft.data_movimento) = b.mes
+  AND EXTRACT(YEAR FROM ft.data_movimento) = b.ano
+GROUP BY b.id, b.category_id, b.mes, b.ano, b.valor_planejado;
+
+-- Função: Calcular Life Score
+CREATE OR REPLACE FUNCTION calculate_life_score(p_user_id UUID)
+RETURNS NUMERIC(4,2) AS $$
 DECLARE
-  current_d DATE := '2025-01-01';
-  end_d     DATE := '2030-12-31';
+  finance_score NUMERIC := 0;
+  productivity_score NUMERIC := 0;
+  health_score NUMERIC := 0;
+  mindfulness_score NUMERIC := 0;
+  meditation_bonus NUMERIC := 0;
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM dcalendar LIMIT 1) THEN
-    WHILE current_d <= end_d LOOP
-      INSERT INTO dcalendar (
-        data,
-        ano,
-        mes,
-        nome_mes,
-        dia,
-        dia_semana,
-        nome_dia_semana,
-        trimestre,
-        semestre,
-        fim_de_semana
-      ) VALUES (
-        current_d,
-        EXTRACT(YEAR FROM current_d),
-        EXTRACT(MONTH FROM current_d),
-        TO_CHAR(current_d, 'TMMonth'),
-        EXTRACT(DAY FROM current_d),
-        EXTRACT(ISODOW FROM current_d),
-        TO_CHAR(current_d, 'TMDay'),
-        EXTRACT(QUARTER FROM current_d),
-        CASE WHEN EXTRACT(MONTH FROM current_d) <= 6 THEN 1 ELSE 2 END,
-        CASE WHEN EXTRACT(ISODOW FROM current_d) IN (6, 7) THEN TRUE ELSE FALSE END
-      );
-      current_d := current_d + INTERVAL '1 day';
-    END LOOP;
-  END IF;
+  -- Health Score (baseado em mood/energia)
+  SELECT COALESCE(AVG(mood_score), 5) INTO health_score 
+  FROM mood_logs WHERE user_id = p_user_id;
+  
+  -- Mindfulness Score
+  SELECT CASE WHEN COUNT(*) > 0 THEN 40 ELSE 0 END INTO meditation_bonus
+  FROM meditation_sessions 
+  WHERE user_id = p_user_id 
+    AND completed_at >= NOW() - INTERVAL '24 hours';
+  
+  mindfulness_score := meditation_bonus;
+  
+  -- Finance Score (simplificado)
+  finance_score := 70; -- Placeholder
+  
+  -- Productivity Score
+  productivity_score := 75; -- Placeholder
+  
+  RETURN LEAST(100, 
+    (finance_score * 0.35) + 
+    (productivity_score * 0.30) + 
+    (health_score * 0.20) + 
+    (mindfulness_score * 0.15)
+  );
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+-- Trigger: Atualizar Life Score automaticamente
+CREATE OR REPLACE FUNCTION trg_update_life_score()
+RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE user_profiles 
+  SET life_score = calculate_life_score(NEW.user_id),
+      updated_at = NOW()
+  WHERE id = NEW.user_id;
+  RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-SELECT populate_dcalendar();
+-- Triggers no banco de dados para sincronizar Life Score
+CREATE OR REPLACE TRIGGER after_meditation_complete
+AFTER INSERT ON meditation_sessions
+FOR EACH ROW EXECUTE FUNCTION trg_update_life_score();
 
--- ═══════════════════════════════════════════════════════
--- Row Level Security (RLS)
--- Para app single-user com service_role key: desabilite RLS
--- Para multi-usuário futuro: configure policies
--- ═══════════════════════════════════════════════════════
+CREATE OR REPLACE TRIGGER after_mood_logged
+AFTER INSERT ON mood_logs
+FOR EACH ROW EXECUTE FUNCTION trg_update_life_score();
 
-ALTER TABLE user_profile     DISABLE ROW LEVEL SECURITY;
-ALTER TABLE personas         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE inbox            DISABLE ROW LEVEL SECURITY;
-ALTER TABLE expenses         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE income           DISABLE ROW LEVEL SECURITY;
-ALTER TABLE tasks            DISABLE ROW LEVEL SECURITY;
-ALTER TABLE reminders        DISABLE ROW LEVEL SECURITY;
-ALTER TABLE goals            DISABLE ROW LEVEL SECURITY;
-ALTER TABLE habits           DISABLE ROW LEVEL SECURITY;
-ALTER TABLE projects         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE notes            DISABLE ROW LEVEL SECURITY;
-ALTER TABLE ideas            DISABLE ROW LEVEL SECURITY;
-ALTER TABLE memories         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE telegram_history DISABLE ROW LEVEL SECURITY;
-ALTER TABLE salaries         DISABLE ROW LEVEL SECURITY;
-ALTER TABLE credit_cards     DISABLE ROW LEVEL SECURITY;
-ALTER TABLE card_expenses    DISABLE ROW LEVEL SECURITY;
-ALTER TABLE dcalendar        DISABLE ROW LEVEL SECURITY;
-
--- ═══════════════════════════════════════════════════════
--- Verificação final
--- ═══════════════════════════════════════════════════════
-SELECT table_name FROM information_schema.tables
-WHERE table_schema = 'public'
-ORDER BY table_name;
+-- Função utilitária para energia média horária
+CREATE OR REPLACE FUNCTION get_avg_energy_by_hour(p_user_id UUID)
+RETURNS TABLE(hour INT, avg_energy NUMERIC) AS $$
+  SELECT EXTRACT(HOUR FROM created_at)::INT as hour, AVG(energy_level)::NUMERIC(3,2)
+  FROM energy_logs
+  WHERE user_id = p_user_id
+  GROUP BY 1 ORDER BY 1;
+$$ LANGUAGE sql STABLE;

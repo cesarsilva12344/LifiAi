@@ -40,7 +40,7 @@ Sua ÚNICA função é analisar o texto do usuário e retornar um JSON com:
 - "confidence": número entre 0 e 1
 
 CATEGORIAS DE INTENT:
-- "expense" → despesas, gastos, compras, pagamentos
+- "expense" → despesas, gastos tradicionais, compras no débito/dinheiro
 - "income"  → receitas, ganhos, salário, pix recebido
 - "task"    → tarefas, afazeres, to-dos, ações futuras
 - "reminder" → lembretes com data/hora específica
@@ -50,6 +50,12 @@ CATEGORIAS DE INTENT:
 - "note"    → anotações, aprendizados, diários
 - "idea"    → ideias criativas para avaliar depois
 - "memory"  → fatos importantes de vida pessoal/profissional
+- "decision" → decisões importantes e o que espera dela
+- "meditation" → registrar uma sessão de meditação, respiração ou mindfulness
+- "mood" → registrar humor (1 a 10) e energia física/mental (1 a 10)
+- "debt" → registrar uma dívida com credor e valor original
+- "debt_payment" → pagar/quitar uma dívida
+- "budget" → definir teto orçamentário mensal por categoria
 - "chat"    → conversa, pergunta direta ao assistente
 
 REGRAS DE EXTRAÇÃO:
@@ -60,6 +66,12 @@ REGRAS DE EXTRAÇÃO:
 5. habit → "nome", "frequencia" (diaria/semanal)
 6. note/memory → "conteudo" (texto completo), "tags" (array de palavras-chave)
 7. idea → "titulo" (nome curto), "conteudo" (detalhes), "score" (1-10 potencial)
+8. decision → "title", "context", "expected_outcome", "review_at" (YYYY-MM-DD)
+9. meditation → "duration_seconds" (número), "type" (breathing/guided/gratitude/visualization/body_scan), "mood_before" (número), "mood_after" (número)
+10. mood → "mood_score" (número), "energy_level" (número), "context" (texto)
+11. debt → "descricao", "credor", "valor_original" (número), "vencimento" (YYYY-MM-DD)
+12. debt_payment → "debt_id", "valor_pago" (número)
+13. budget → "category_id", "valor_planejado" (número), "mes" (número), "ano" (número)
 
 Retorne APENAS o JSON, sem markdown, sem explicação fora do JSON.`;
 

@@ -33,7 +33,7 @@ Responda de forma energética, focada em métricas de tração, crescimento ráp
     nome: 'Mentor',
     descricao: 'Foco em aprendizado contínuo, leitura, desenvolvimento técnico e intelectual.',
     prompt_base: `Você é um Mentor socrático e profundamente sábio. Seu foco é desenvolvimento pessoal, aprendizado técnico profundo, retenção de conhecimento e desenvolvimento de carreira sólida.
-Quando o usuário salvar notas ou ideias de aprendizado, faça conexões conceituais ricas, sugira novas fontes de estudo (como livros clássicos ou papers) e incentive o raciocínio profundo.
+Quando o usuário salvar notas ou ideias de aprendizado, faça conexões conceituais ricas, sugira novas fontes de estudo (como livros clássicos ou papers) e incentivo o raciocínio profundo.
 Fale com tom de voz empático, inspirador e estruturado.`,
     ativa: false,
     icon: 'GraduationCap'
@@ -107,7 +107,8 @@ const DEFAULT_PROFILE: UserProfile = {
     'Evitar clichês de autoajuda ou introduções demoradas',
     'Respostas estruturadas em Markdown'
   ],
-  contexto: 'Fundador técnico trabalhando em múltiplos projetos de software e focando em maximizar a alavanca de cada hora gasta no dia.'
+  contexto: 'Fundador técnico trabalhando em múltiplos projetos de software e focando em maximizar a alavanca de cada hora gasta no dia.',
+  lifeScore: 82.5
 };
 
 const DEFAULT_STATE: DatabaseState = {
@@ -126,41 +127,73 @@ const DEFAULT_STATE: DatabaseState = {
   userProfile: DEFAULT_PROFILE,
   salaries: [],
   creditCards: [],
-  cardExpenses: []
+  cardExpenses: [],
+  decisions: [],
+  energyLogs: [],
+  briefings: [],
+  simulatorRuns: [],
+  leakageAlerts: [],
+  meditationSessions: [],
+  morningRoutineConfig: {
+    id: 'mrc_1',
+    wake_up_time: '07:00:00',
+    meditation_enabled: true,
+    meditation_duration: 600,
+    briefing_enabled: true,
+    gratitude_prompt: true,
+    intention_setting: true,
+    timezone: 'America/Sao_Paulo'
+  },
+  dailyIntentions: [],
+  moodLogs: [],
+  debts: [],
+  debtPayments: [],
+  budgets: [],
+  aiExtractions: []
 };
 
 let currentDbState: DatabaseState | null = null;
 
 // Map camelCase to snake_case for Supabase
 const mapProfileToSupabase = (p: UserProfile) => ({
-  id: 1,
+  id: '00000000-0000-0000-0000-000000000000', // default auth uuid placeholder
   nome: p.nome,
-  app_name: p.appName,
-  gemini_api_key: p.geminiApiKey || '',
-  deepseek_api_key: p.deepseekApiKey || '',
-  qwen_api_key: p.qwenApiKey || '',
-  telegram_bot_token: p.telegramBotToken || '',
-  telegram_chat_id: p.telegramChatId || '',
-  interesses: p.interesses || [],
-  objetivos: p.objetivos || [],
-  preferencias: p.preferencias || [],
-  contexto: p.contexto || ''
+  email: 'cesar@lifeos.ai',
+  telefone: p.telegramChatId || '',
+  status: 'active',
+  life_score: p.lifeScore || 0,
+  config: {
+    appName: p.appName,
+    gemini_api_key: p.geminiApiKey || '',
+    deepseek_api_key: p.deepseekApiKey || '',
+    qwen_api_key: p.qwenApiKey || '',
+    telegram_bot_token: p.telegramBotToken || '',
+    telegram_chat_id: p.telegramChatId || '',
+    interesses: p.interesses || [],
+    objetivos: p.objetivos || [],
+    preferencias: p.preferencias || [],
+    contexto: p.contexto || ''
+  }
 });
 
 // Map snake_case to camelCase from Supabase
-const mapProfileFromSupabase = (p: any): UserProfile => ({
-  nome: p.nome || 'Usuário',
-  appName: p.app_name || 'LifeOS AI',
-  geminiApiKey: p.gemini_api_key || '',
-  deepseekApiKey: p.deepseek_api_key || '',
-  qwenApiKey: p.qwen_api_key || '',
-  telegramBotToken: p.telegram_bot_token || '',
-  telegramChatId: p.telegram_chat_id || '',
-  interesses: Array.isArray(p.interesses) ? p.interesses : [],
-  objetivos: Array.isArray(p.objetivos) ? p.objetivos : [],
-  preferencias: Array.isArray(p.preferencias) ? p.preferencias : [],
-  contexto: p.contexto || ''
-});
+const mapProfileFromSupabase = (p: any): UserProfile => {
+  const cfg = p.config || {};
+  return {
+    nome: p.nome || 'Usuário',
+    appName: cfg.appName || 'LifeOS AI',
+    geminiApiKey: cfg.gemini_api_key || '',
+    deepseekApiKey: cfg.deepseek_api_key || '',
+    qwenApiKey: cfg.qwen_api_key || '',
+    telegramBotToken: cfg.telegram_bot_token || '',
+    telegramChatId: cfg.telegram_chat_id || p.telefone || '',
+    interesses: Array.isArray(cfg.interesses) ? cfg.interesses : [],
+    objetivos: Array.isArray(cfg.objetivos) ? cfg.objetivos : [],
+    preferencias: Array.isArray(cfg.preferencias) ? cfg.preferencias : [],
+    contexto: cfg.contexto || '',
+    lifeScore: p.life_score || 0
+  };
+};
 
 async function syncTable(supabase: any, tableName: string, items: any[]) {
   try {
@@ -190,7 +223,7 @@ async function syncAllToSupabase(state: DatabaseState) {
 
   try {
     await Promise.all([
-      supabase.from('user_profile').upsert(mapProfileToSupabase(state.userProfile)),
+      supabase.from('user_profiles').upsert(mapProfileToSupabase(state.userProfile)),
       syncTable(supabase, 'personas', state.personas),
       syncTable(supabase, 'inbox', state.inbox),
       syncTable(supabase, 'expenses', state.expenses),
@@ -205,7 +238,18 @@ async function syncAllToSupabase(state: DatabaseState) {
       syncTable(supabase, 'memories', state.memories),
       syncTable(supabase, 'salaries', state.salaries || []),
       syncTable(supabase, 'credit_cards', state.creditCards || []),
-      syncTable(supabase, 'card_expenses', state.cardExpenses || [])
+      syncTable(supabase, 'card_transactions', state.cardExpenses || []),
+      syncTable(supabase, 'decisions', state.decisions || []),
+      syncTable(supabase, 'energy_logs', state.energyLogs || []),
+      syncTable(supabase, 'briefings', state.briefings || []),
+      syncTable(supabase, 'simulator_runs', state.simulatorRuns || []),
+      syncTable(supabase, 'leakage_alerts', state.leakageAlerts || []),
+      syncTable(supabase, 'meditation_sessions', state.meditationSessions || []),
+      syncTable(supabase, 'daily_intentions', state.dailyIntentions || []),
+      syncTable(supabase, 'mood_logs', state.moodLogs || []),
+      syncTable(supabase, 'debts', state.debts || []),
+      syncTable(supabase, 'budgets', state.budgets || []),
+      syncTable(supabase, 'ai_extractions', state.aiExtractions || [])
     ]);
   } catch (err: any) {
     console.error('[Supabase Sync] Failed to sync database state:', err.message);
@@ -245,9 +289,22 @@ export async function initializeDatabase(): Promise<DatabaseState> {
         memoriesRes,
         salariesRes,
         creditCardsRes,
-        cardExpensesRes
+        cardExpensesRes,
+        decisionsRes,
+        energyLogsRes,
+        briefingsRes,
+        simulatorRunsRes,
+        leakageAlertsRes,
+        meditationSessionsRes,
+        morningRoutineConfigRes,
+        dailyIntentionsRes,
+        moodLogsRes,
+        debtsRes,
+        debtPaymentsRes,
+        budgetsRes,
+        aiExtractionsRes
       ] = await Promise.all([
-        supabase.from('user_profile').select('*').single(),
+        supabase.from('user_profiles').select('*').limit(1).maybeSingle(),
         supabase.from('personas').select('*'),
         supabase.from('inbox').select('*').order('created_at', { ascending: false }),
         supabase.from('expenses').select('*').order('data', { ascending: false }),
@@ -262,12 +319,21 @@ export async function initializeDatabase(): Promise<DatabaseState> {
         supabase.from('memories').select('*').order('created_at', { ascending: false }),
         supabase.from('salaries').select('*').order('data_prevista', { ascending: false }),
         supabase.from('credit_cards').select('*').order('nome', { ascending: true }),
-        supabase.from('card_expenses').select('*').order('data', { ascending: false }),
+        supabase.from('card_transactions').select('*').order('created_at', { ascending: false }),
+        supabase.from('decisions').select('*').order('created_at', { ascending: false }),
+        supabase.from('energy_logs').select('*').order('created_at', { ascending: false }),
+        supabase.from('briefings').select('*').order('date', { ascending: false }),
+        supabase.from('simulator_runs').select('*').order('created_at', { ascending: false }),
+        supabase.from('leakage_alerts').select('*').order('detected_at', { ascending: false }),
+        supabase.from('meditation_sessions').select('*').order('completed_at', { ascending: false }),
+        supabase.from('morning_routine_config').select('*').limit(1).maybeSingle(),
+        supabase.from('daily_intentions').select('*').order('date', { ascending: false }),
+        supabase.from('mood_logs').select('*').order('recorded_at', { ascending: false }),
+        supabase.from('debts').select('*').order('created_at', { ascending: false }),
+        supabase.from('debt_payments').select('*').order('created_at', { ascending: false }),
+        supabase.from('budgets').select('*').order('created_at', { ascending: false }),
+        supabase.from('ai_extractions').select('*').order('created_at', { ascending: false })
       ]);
-
-      if (profileRes.error && profileRes.error.code !== 'PGRST116') {
-        throw new Error(`Profile load error: ${profileRes.error.message}`);
-      }
 
       let userProfile = DEFAULT_PROFILE;
       if (profileRes.data) {
@@ -275,7 +341,7 @@ export async function initializeDatabase(): Promise<DatabaseState> {
       } else {
         console.log('[LifeOS AI] Profile table empty on Supabase. Seeding defaults...');
         const seeded = mapProfileToSupabase(DEFAULT_PROFILE);
-        await supabase.from('user_profile').upsert(seeded);
+        await supabase.from('user_profiles').upsert(seeded);
       }
 
       let personas = personasRes.data || [];
@@ -301,7 +367,20 @@ export async function initializeDatabase(): Promise<DatabaseState> {
         memories: memoriesRes.data || [],
         salaries: salariesRes.data || [],
         creditCards: creditCardsRes.data || [],
-        cardExpenses: cardExpensesRes.data || []
+        cardExpenses: cardExpensesRes.data || [],
+        decisions: decisionsRes.data || [],
+        energyLogs: energyLogsRes.data || [],
+        briefings: briefingsRes.data || [],
+        simulatorRuns: simulatorRunsRes.data || [],
+        leakageAlerts: leakageAlertsRes.data || [],
+        meditationSessions: meditationSessionsRes.data || [],
+        morningRoutineConfig: morningRoutineConfigRes.data || DEFAULT_STATE.morningRoutineConfig,
+        dailyIntentions: dailyIntentionsRes.data || [],
+        moodLogs: moodLogsRes.data || [],
+        debts: debtsRes.data || [],
+        debtPayments: debtPaymentsRes.data || [],
+        budgets: budgetsRes.data || [],
+        aiExtractions: aiExtractionsRes.data || []
       };
 
       try {
