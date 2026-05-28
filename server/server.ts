@@ -1,7 +1,7 @@
 import express from 'express';
 import path from 'path';
-import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
+import fs from 'fs';
 import { 
   readDatabase, 
   writeDatabase, 
@@ -95,8 +95,8 @@ async function startServer() {
   app.post('/api/db/reset', (req, res) => {
     try {
       const dbPath = path.join(process.cwd(), 'db.json');
-      if (require('fs').existsSync(dbPath)) {
-        require('fs').unlinkSync(dbPath);
+      if (fs.existsSync(dbPath)) {
+        fs.unlinkSync(dbPath);
       }
       const state = readDatabase(); // Trigger write defaults
       res.json({ message: 'Banco de dados restaurado ao original', state });
@@ -810,6 +810,7 @@ async function startServer() {
   // ----------------------------------------------------
   if (!process.env.VERCEL) {
     if (process.env.NODE_ENV !== 'production') {
+      const { createServer: createViteServer } = await import('vite');
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: 'spa',

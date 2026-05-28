@@ -1,11 +1,5 @@
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -40,8 +34,8 @@ var init_client = __esm({
 // server/server.ts
 import express from "express";
 import path2 from "path";
-import { createServer as createViteServer } from "vite";
 import dotenv2 from "dotenv";
+import fs2 from "fs";
 
 // server/db.ts
 import fs from "fs";
@@ -1474,14 +1468,14 @@ async function runPersona(message, history = []) {
 }
 async function runInsight(type = "daily") {
   const ctx = await getContext();
-  const { financial: fs2, pendingTasks, goals, habits, activeProjects, userProfile } = ctx;
+  const { financial: fs3, pendingTasks, goals, habits, activeProjects, userProfile } = ctx;
   if (type === "financial") {
     const systemPrompt2 = INSIGHT_FINANCIAL(userProfile.nome);
-    const topExpenses = fs2.recentExpenses.sort((a, b) => b.valor - a.valor).slice(0, 5).map((e) => `${e.categoria}: R$ ${e.valor.toFixed(2)} (${e.descricao})`).join("\n");
-    const userMessage2 = `Receitas: R$ ${fs2.totalIncome.toFixed(2)}
-Despesas: R$ ${fs2.totalExpenses.toFixed(2)}
-Saldo: R$ ${fs2.balance.toFixed(2)}
-Cat. maior gasto: ${fs2.topCategory}
+    const topExpenses = fs3.recentExpenses.sort((a, b) => b.valor - a.valor).slice(0, 5).map((e) => `${e.categoria}: R$ ${e.valor.toFixed(2)} (${e.descricao})`).join("\n");
+    const userMessage2 = `Receitas: R$ ${fs3.totalIncome.toFixed(2)}
+Despesas: R$ ${fs3.totalExpenses.toFixed(2)}
+Saldo: R$ ${fs3.balance.toFixed(2)}
+Cat. maior gasto: ${fs3.topCategory}
 
 Top despesas:
 ${topExpenses || "Nenhuma"}`;
@@ -1496,8 +1490,8 @@ ${topExpenses || "Nenhuma"}`;
   }
   const systemPrompt = INSIGHT_DAILY();
   const userMessage = [
-    `Saldo: R$ ${fs2.balance.toFixed(2)} (receitas ${fs2.totalIncome.toFixed(2)}, despesas ${fs2.totalExpenses.toFixed(2)})`,
-    `Maior gasto: ${fs2.topCategory}`,
+    `Saldo: R$ ${fs3.balance.toFixed(2)} (receitas ${fs3.totalIncome.toFixed(2)}, despesas ${fs3.totalExpenses.toFixed(2)})`,
+    `Maior gasto: ${fs3.topCategory}`,
     `Tarefas pendentes: ${pendingTasks.length} (${pendingTasks.filter((t) => t.prioridade === "high").length} urgentes)`,
     `Metas: ${goals.map((g) => `${g.titulo} ${Math.round(g.progresso / g.meta * 100)}%`).join(", ") || "nenhuma"}`,
     `H\xE1bitos: ${habits.map((h) => `${h.nome} (${h.streak}d)`).join(", ") || "nenhum"}`,
@@ -1553,14 +1547,14 @@ async function runOCR(imageBase64, mimeType = "image/jpeg") {
   }
 }
 function localPersonaFallback(persona, message, ctx) {
-  const { financial: fs2, pendingTasks, goals, userProfile } = ctx;
+  const { financial: fs3, pendingTasks, goals, userProfile } = ctx;
   const name = userProfile.nome || "voc\xEA";
   const lower = message.toLowerCase();
   if (persona.id === "cfo" || persona.nome?.toLowerCase().includes("cfo")) {
     if (lower.match(/gasto|despesa|gastei|paguei/)) {
-      return `\u{1F4CA} **[CFO]** Computado. Saldo atual: **R$ ${fs2.balance.toFixed(2)}**. Receitas: R$ ${fs2.totalIncome.toFixed(2)} | Despesas: R$ ${fs2.totalExpenses.toFixed(2)}. Maior categoria: **${fs2.topCategory}**. Esse gasto est\xE1 dentro do or\xE7amento?`;
+      return `\u{1F4CA} **[CFO]** Computado. Saldo atual: **R$ ${fs3.balance.toFixed(2)}**. Receitas: R$ ${fs3.totalIncome.toFixed(2)} | Despesas: R$ ${fs3.totalExpenses.toFixed(2)}. Maior categoria: **${fs3.topCategory}**. Esse gasto est\xE1 dentro do or\xE7amento?`;
     }
-    return `\u{1F4CA} **[CFO]** Entendido. Situa\xE7\xE3o: saldo **R$ ${fs2.balance.toFixed(2)}**, ${pendingTasks.length} tarefas, ${goals.length} metas. O que analisar?`;
+    return `\u{1F4CA} **[CFO]** Entendido. Situa\xE7\xE3o: saldo **R$ ${fs3.balance.toFixed(2)}**, ${pendingTasks.length} tarefas, ${goals.length} metas. O que analisar?`;
   }
   if (persona.id === "founder") {
     return `\u{1F680} **[Founder]** Fala, ${name}! Registrado. ${pendingTasks.length} pend\xEAncias no radar. Qual move a agulha hoje? Foco em execu\xE7\xE3o.`;
@@ -1569,25 +1563,25 @@ function localPersonaFallback(persona, message, ctx) {
     const urgent = pendingTasks.filter((t) => t.prioridade === "high");
     return `\u26A1 **[Executor]** Registrado. ${urgent.length > 0 ? `Urgente: **${urgent[0].titulo}**. ` : ""}${pendingTasks.length} tarefas. Pr\xF3xima a\xE7\xE3o agora?`;
   }
-  return `\u{1F9D9} **[${persona.nome}]** Registrado. Saldo: **R$ ${fs2.balance.toFixed(2)}** | Tarefas: ${pendingTasks.length}. Como avan\xE7ar?`;
+  return `\u{1F9D9} **[${persona.nome}]** Registrado. Saldo: **R$ ${fs3.balance.toFixed(2)}** | Tarefas: ${pendingTasks.length}. Como avan\xE7ar?`;
 }
 function localDailyInsights(ctx) {
-  const { financial: fs2, pendingTasks, goals, habits } = ctx;
+  const { financial: fs3, pendingTasks, goals, habits } = ctx;
   const urgent = pendingTasks.filter((t) => t.prioridade === "high");
   const bestHabit = habits.reduce((b, h) => h.streak > b.streak ? h : b, habits[0]);
   return [
-    fs2.balance >= 0 ? `\u{1F4B0} Saldo positivo de R$ ${fs2.balance.toFixed(2)}. Maior gasto: ${fs2.topCategory}. Considere alocar parte para suas metas.` : `\u26A0\uFE0F Saldo negativo de R$ ${Math.abs(fs2.balance).toFixed(2)}. Revise ${fs2.topCategory} para equilibrar o caixa.`,
+    fs3.balance >= 0 ? `\u{1F4B0} Saldo positivo de R$ ${fs3.balance.toFixed(2)}. Maior gasto: ${fs3.topCategory}. Considere alocar parte para suas metas.` : `\u26A0\uFE0F Saldo negativo de R$ ${Math.abs(fs3.balance).toFixed(2)}. Revise ${fs3.topCategory} para equilibrar o caixa.`,
     urgent.length > 0 ? `\u{1F534} ${urgent.length} urgente(s): "${urgent[0].titulo}". Priorize antes do fim do dia.` : `\u{1F4CB} ${pendingTasks.length} tarefa(s) pendente(s). Escolha 3 para hoje e ignore o resto.`,
     bestHabit ? `\u{1F525} Melhor streak: ${bestHabit.nome} com ${bestHabit.streak} dias. N\xE3o quebre hoje!` : goals[0] ? `\u{1F3AF} Meta "${goals[0].titulo}": ${Math.round(goals[0].progresso / goals[0].meta * 100)}% conclu\xEDda.` : `\u{1F680} Defina pelo menos 1 h\xE1bito ou meta para acompanhar o progresso.`
   ];
 }
 function localFinancialReport(ctx) {
-  const { financial: fs2, goals, pendingTasks } = ctx;
+  const { financial: fs3, goals, pendingTasks } = ctx;
   return `\u{1F4CA} **Relat\xF3rio Financeiro**
 
-Receitas: R$ ${fs2.totalIncome.toFixed(2)} | Despesas: R$ ${fs2.totalExpenses.toFixed(2)} | **Saldo: R$ ${fs2.balance.toFixed(2)}**
+Receitas: R$ ${fs3.totalIncome.toFixed(2)} | Despesas: R$ ${fs3.totalExpenses.toFixed(2)} | **Saldo: R$ ${fs3.balance.toFixed(2)}**
 
-Maior categoria de gasto: **${fs2.topCategory}**. ${pendingTasks.length} tarefas pendentes. ${goals.length} metas ativas.
+Maior categoria de gasto: **${fs3.topCategory}**. ${pendingTasks.length} tarefas pendentes. ${goals.length} metas ativas.
 
 Configure a API DeepSeek para an\xE1lises detalhadas com IA.`;
 }
@@ -1679,7 +1673,7 @@ async function handleAsk(question, history) {
 }
 async function handleHoje() {
   const ctx = await getContext();
-  const { financial: fs2, pendingTasks, habits, goals, userProfile } = ctx;
+  const { financial: fs3, pendingTasks, habits, goals, userProfile } = ctx;
   const hoje = (/* @__PURE__ */ new Date()).toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
   const urgent = pendingTasks.filter((t) => t.prioridade === "high");
   const todayStr = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
@@ -1687,7 +1681,7 @@ async function handleHoje() {
   const lines = [
     `\u{1F4C5} *${hoje.toUpperCase()}*`,
     ``,
-    `\u{1F4B0} *Financeiro:* R$ ${fs2.balance.toFixed(2)} de saldo (\u2191 R$ ${fs2.totalIncome.toFixed(2)} | \u2193 R$ ${fs2.totalExpenses.toFixed(2)})`,
+    `\u{1F4B0} *Financeiro:* R$ ${fs3.balance.toFixed(2)} de saldo (\u2191 R$ ${fs3.totalIncome.toFixed(2)} | \u2193 R$ ${fs3.totalExpenses.toFixed(2)})`,
     ``,
     `\u{1F4CB} *Tarefas:* ${pendingTasks.length} pendentes${urgent.length > 0 ? ` \u2014 \u{1F534} ${urgent.length} urgente(s)` : ""}`,
     urgent.slice(0, 3).map((t) => `   \u2022 ${t.titulo}`).join("\n"),
@@ -2151,8 +2145,8 @@ async function startServer() {
   app.post("/api/db/reset", (req, res) => {
     try {
       const dbPath = path2.join(process.cwd(), "db.json");
-      if (__require("fs").existsSync(dbPath)) {
-        __require("fs").unlinkSync(dbPath);
+      if (fs2.existsSync(dbPath)) {
+        fs2.unlinkSync(dbPath);
       }
       const state = readDatabase();
       res.json({ message: "Banco de dados restaurado ao original", state });
@@ -2748,6 +2742,7 @@ ${digestResult.response}`,
   startScheduler();
   if (!process.env.VERCEL) {
     if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true },
         appType: "spa"
