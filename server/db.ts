@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { DatabaseState, Persona, UserProfile, InboxItem } from '../src/types';
 
-const DB_FILE = path.join(process.cwd(), 'db.json');
+const DB_FILE = process.env.VERCEL
+  ? path.join('/tmp', 'db.json')
+  : path.join(process.cwd(), 'db.json');
 
 const DEFAULT_PERSONAS: Persona[] = [
   {
