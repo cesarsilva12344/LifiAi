@@ -1,5 +1,9 @@
+var __create = Object.create;
 var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __getProtoOf = Object.getPrototypeOf;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -7,6 +11,23 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
+  // If the importer is in node compatibility mode or this is not an ESM
+  // file that has been converted to a CommonJS file using a Babel-
+  // compatible transform (i.e. "__esModule" has not been set), then set
+  // "default" to the CommonJS "module.exports" for node compatibility.
+  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
+  mod
+));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // services/database/client.ts
 var client_exports = {};
@@ -14,16 +35,16 @@ __export(client_exports, {
   isSupabaseConfigured: () => isSupabaseConfigured,
   supabase: () => supabase
 });
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-var supabaseUrl, supabaseServiceKey, isSupabaseConfigured, supabase;
+var import_supabase_js, import_dotenv, supabaseUrl, supabaseServiceKey, isSupabaseConfigured, supabase;
 var init_client = __esm({
   "services/database/client.ts"() {
-    dotenv.config();
+    import_supabase_js = require("@supabase/supabase-js");
+    import_dotenv = __toESM(require("dotenv"), 1);
+    import_dotenv.default.config();
     supabaseUrl = process.env.SUPABASE_URL || "";
     supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || "";
     isSupabaseConfigured = !!(supabaseUrl && supabaseServiceKey);
-    supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseServiceKey, {
+    supabase = isSupabaseConfigured ? (0, import_supabase_js.createClient)(supabaseUrl, supabaseServiceKey, {
       auth: {
         persistSession: false
       }
@@ -32,15 +53,20 @@ var init_client = __esm({
 });
 
 // server/server.ts
-import express from "express";
-import path2 from "path";
-import dotenv2 from "dotenv";
-import fs2 from "fs";
+var server_exports = {};
+__export(server_exports, {
+  default: () => server_default
+});
+module.exports = __toCommonJS(server_exports);
+var import_express = __toESM(require("express"), 1);
+var import_path2 = __toESM(require("path"), 1);
+var import_dotenv2 = __toESM(require("dotenv"), 1);
+var import_fs2 = __toESM(require("fs"), 1);
 
 // server/db.ts
-import fs from "fs";
-import path from "path";
-var DB_FILE = process.env.VERCEL ? path.join("/tmp", "db.json") : path.join(process.cwd(), "db.json");
+var import_fs = __toESM(require("fs"), 1);
+var import_path = __toESM(require("path"), 1);
+var DB_FILE = process.env.VERCEL ? import_path.default.join("/tmp", "db.json") : import_path.default.join(process.cwd(), "db.json");
 var DEFAULT_PERSONAS = [
   {
     id: "cfo",
@@ -318,7 +344,7 @@ async function initializeDatabase() {
         cardExpenses: cardExpensesRes.data || []
       };
       try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(currentDbState, null, 2), "utf-8");
+        import_fs.default.writeFileSync(DB_FILE, JSON.stringify(currentDbState, null, 2), "utf-8");
       } catch (_) {
       }
       console.log("[LifeOS AI] Database initialized from Supabase successfully.");
@@ -329,11 +355,11 @@ async function initializeDatabase() {
   }
   console.log("[LifeOS AI] Loading database from local JSON file...");
   try {
-    if (!fs.existsSync(DB_FILE)) {
+    if (!import_fs.default.existsSync(DB_FILE)) {
       currentDbState = DEFAULT_STATE;
-      fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_STATE, null, 2), "utf-8");
+      import_fs.default.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_STATE, null, 2), "utf-8");
     } else {
-      const data = fs.readFileSync(DB_FILE, "utf-8");
+      const data = import_fs.default.readFileSync(DB_FILE, "utf-8");
       currentDbState = JSON.parse(data);
     }
   } catch (error) {
@@ -345,10 +371,10 @@ async function initializeDatabase() {
 function readDatabase() {
   if (currentDbState) return currentDbState;
   try {
-    if (!fs.existsSync(DB_FILE)) {
+    if (!import_fs.default.existsSync(DB_FILE)) {
       return DEFAULT_STATE;
     }
-    const data = fs.readFileSync(DB_FILE, "utf-8");
+    const data = import_fs.default.readFileSync(DB_FILE, "utf-8");
     return JSON.parse(data);
   } catch (error) {
     return DEFAULT_STATE;
@@ -357,7 +383,7 @@ function readDatabase() {
 function writeDatabase(state) {
   currentDbState = state;
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(state, null, 2), "utf-8");
+    import_fs.default.writeFileSync(DB_FILE, JSON.stringify(state, null, 2), "utf-8");
   } catch (error) {
     console.error("Falha ao escrever banco de dados JSON:", error);
   }
@@ -1910,12 +1936,12 @@ async function handleAgora() {
 }
 
 // server/server.ts
-dotenv2.config();
+import_dotenv2.default.config();
 var PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 async function startServer() {
   await initializeDatabase();
-  const app = express();
-  app.use(express.json());
+  const app = (0, import_express.default)();
+  app.use(import_express.default.json());
   const getTelegramHistory = () => {
     const db = readDatabase();
     const userName = db.userProfile?.nome || "C\xE9sar";
@@ -1948,9 +1974,9 @@ async function startServer() {
   });
   app.post("/api/db/reset", (req, res) => {
     try {
-      const dbPath = path2.join(process.cwd(), "db.json");
-      if (fs2.existsSync(dbPath)) {
-        fs2.unlinkSync(dbPath);
+      const dbPath = import_path2.default.join(process.cwd(), "db.json");
+      if (import_fs2.default.existsSync(dbPath)) {
+        import_fs2.default.unlinkSync(dbPath);
       }
       const state = readDatabase();
       res.json({ message: "Banco de dados restaurado ao original", state });
@@ -2669,10 +2695,10 @@ ${digestResult.response}`,
       });
       app.use(vite.middlewares);
     } else {
-      const distPath = path2.join(process.cwd(), "dist");
-      app.use(express.static(distPath));
+      const distPath = import_path2.default.join(process.cwd(), "dist");
+      app.use(import_express.default.static(distPath));
       app.get("*", (req, res) => {
-        res.sendFile(path2.join(distPath, "index.html"));
+        res.sendFile(import_path2.default.join(distPath, "index.html"));
       });
     }
   }
@@ -2688,7 +2714,4 @@ var appPromise = startServer();
 var server_default = async (req, res) => {
   const app = await appPromise;
   return app(req, res);
-};
-export {
-  server_default as default
 };
