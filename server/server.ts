@@ -11,14 +11,14 @@ import {
   getProfile, 
   updateProfile,
   initializeDatabase
-} from './server/db';
+} from './db';
 import { 
   classifyAndParseInput, 
   generatePersonaResponse, 
   getEmbedding, 
   semanticSearch,
   getAI
-} from './server/ai';
+} from './ai';
 import { 
   handleCommand, 
   isCommand, 
@@ -36,9 +36,9 @@ import {
   createNote,
   createIdea,
   createMemory
-} from './services/engine/index';
-import { runPersona, runRouter, runTranscribe, runOCR } from './services/ai/core';
-import { Expense, Income, Task, Reminder, Goal, Habit, Project, Note, Idea, Memory, InboxItem } from './src/types';
+} from '../services/engine/index';
+import { runPersona, runRouter, runTranscribe, runOCR } from '../services/ai/core';
+import { Expense, Income, Task, Reminder, Goal, Habit, Project, Note, Idea, Memory, InboxItem } from '../src/types';
 
 // Load env vars
 dotenv.config();
