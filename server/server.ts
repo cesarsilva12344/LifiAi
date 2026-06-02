@@ -1223,13 +1223,61 @@ async function startServer() {
         }));
 
         let reply = '';
-        if (isCommand(text)) {
-          const { response, handled } = await handleCommand(text, history);
-          reply = handled ? response : `❓ Comando não reconhecido. Use /help para ver os disponíveis.`;
-        } else {
-          const { intent, extracted_data } = await runRouter(text);
-          await executeFromIntent(intent, extracted_data, 'telegram');
-          reply = await runPersona(text, history);
+        try {
+          if (isCommand(text)) {
+            const { response, handled } = await handleCommand(text, history);
+            reply = handled ? response : `❓ Comando não reconhecido. Use /help para ver os disponíveis.`;
+          } else {
+            let intent = 'chat';
+            let extracted_data: any = {};
+            let routerSuccess = false;
+            
+            // Try running router AI
+            try {
+              const routerRes = await runRouter(text);
+              intent = routerRes.intent;
+              extracted_data = routerRes.extracted_data;
+              routerSuccess = true;
+            } catch (routerErr: any) {
+              console.warn('[Telegram Webhook] AI Router failed, using fallback regex parsing:', routerErr.message);
+              
+              // Smart Regex Fallback: "Gasto Uber R$ 42.90"
+              const valMatch = text.match(/(?:R\$|r\$|\$)\s*([0-9]+(?:[.,][0-9]{2})?)/) || text.match(/([0-9]+(?:[.,][0-9]{2})?)\s*(?:reais|reais)/);
+              if (valMatch) {
+                const valor = parseFloat(valMatch[1].replace(',', '.'));
+                intent = text.toLowerCase().includes('receb') || text.toLowerCase().includes('ganh') ? 'income' : 'expense';
+                extracted_data = {
+                  valor,
+                  categoria: text.toLowerCase().includes('uber') || text.toLowerCase().includes('transp') ? 'Transporte' : 'Geral',
+                  descricao: text.substring(0, 45)
+                };
+              }
+            }
+
+            // Execute database transaction
+            const actionRes = await executeFromIntent(intent, extracted_data, 'telegram');
+
+            // Try running persona AI response
+            try {
+              if (routerSuccess) {
+                reply = await runPersona(text, history);
+              } else {
+                throw new Error('Fallback active');
+              }
+            } catch (personaErr: any) {
+              console.warn('[Telegram Webhook] Persona AI failed, using template fallback:', personaErr.message);
+              
+              if (actionRes.success && (intent === 'expense' || intent === 'income')) {
+                const isIncome = intent === 'income';
+                reply = `✅ **[CFO Padrão]** ${isIncome ? 'Receita' : 'Despesa'} registrada no banco de dados!\n\n📝 **Descrição:** ${extracted_data.descricao || 'Registro via Telegram'}\n💰 **Valor:** R$ ${Number(extracted_data.valor).toFixed(2)}\n📂 **Categoria:** ${extracted_data.categoria || 'Geral'}\n\n⚠️ *Nota: O seu registro foi salvo com sucesso, mas a IA de conversação personalizada está indisponível. Verifique se a sua **Gemini API Key** está configurada nos Ajustes.*`;
+              } else {
+                reply = `🤖 **[Mobilis Executive]** Recebi seu texto: "${text}".\n\n⚠️ *Não foi possível rodar a Inteligência Artificial (Gemini) para processar os dados ou gerar uma resposta. Por favor, verifique se a sua API Key está salva corretamente nos Ajustes do painel.*`;
+              }
+            }
+          }
+        } catch (pipelineErr: any) {
+          console.error('[Telegram Webhook] Pipeline crash:', pipelineErr.message);
+          reply = `🤖 **[Mobilis Executive]** Olá! Recebi sua mensagem, mas ocorreu uma falha interna no processamento. Certifique-se de configurar as chaves de API nos Ajustes do aplicativo.`;
         }
 
         addTelegramHistory('bot', reply);

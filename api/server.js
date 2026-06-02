@@ -243,6 +243,16 @@ function ensureStateIntegrity(state) {
   if (!state.accounts || state.accounts.length === 0) state.accounts = DEFAULT_ACCOUNTS;
   if (!state.tags || state.tags.length === 0) state.tags = DEFAULT_TAGS;
   if (!state.creditCards || state.creditCards.length === 0) state.creditCards = DEFAULT_CREDIT_CARDS;
+  if (state.userProfile) {
+    state.userProfile = {
+      ...state.userProfile,
+      geminiApiKey: process.env.GEMINI_API_KEY || state.userProfile.geminiApiKey || "",
+      deepseekApiKey: process.env.DEEPSEEK_API_KEY || state.userProfile.deepseekApiKey || "",
+      qwenApiKey: process.env.QWEN_API_KEY || state.userProfile.qwenApiKey || "",
+      telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || state.userProfile.telegramBotToken || "",
+      telegramChatId: process.env.TELEGRAM_CHAT_ID || state.userProfile.telegramChatId || ""
+    };
+  }
   return state;
 }
 function readDatabase() {
@@ -3483,13 +3493,60 @@ async function startServer() {
           text: h.text
         }));
         let reply = "";
-        if (isCommand(text)) {
-          const { response, handled } = await handleCommand(text, history);
-          reply = handled ? response : `\u2753 Comando n\xE3o reconhecido. Use /help para ver os dispon\xEDveis.`;
-        } else {
-          const { intent, extracted_data } = await runRouter(text);
-          await executeFromIntent(intent, extracted_data, "telegram");
-          reply = await runPersona(text, history);
+        try {
+          if (isCommand(text)) {
+            const { response, handled } = await handleCommand(text, history);
+            reply = handled ? response : `\u2753 Comando n\xE3o reconhecido. Use /help para ver os dispon\xEDveis.`;
+          } else {
+            let intent = "chat";
+            let extracted_data = {};
+            let routerSuccess = false;
+            try {
+              const routerRes = await runRouter(text);
+              intent = routerRes.intent;
+              extracted_data = routerRes.extracted_data;
+              routerSuccess = true;
+            } catch (routerErr) {
+              console.warn("[Telegram Webhook] AI Router failed, using fallback regex parsing:", routerErr.message);
+              const valMatch = text.match(/(?:R\$|r\$|\$)\s*([0-9]+(?:[.,][0-9]{2})?)/) || text.match(/([0-9]+(?:[.,][0-9]{2})?)\s*(?:reais|reais)/);
+              if (valMatch) {
+                const valor = parseFloat(valMatch[1].replace(",", "."));
+                intent = text.toLowerCase().includes("receb") || text.toLowerCase().includes("ganh") ? "income" : "expense";
+                extracted_data = {
+                  valor,
+                  categoria: text.toLowerCase().includes("uber") || text.toLowerCase().includes("transp") ? "Transporte" : "Geral",
+                  descricao: text.substring(0, 45)
+                };
+              }
+            }
+            const actionRes = await executeFromIntent(intent, extracted_data, "telegram");
+            try {
+              if (routerSuccess) {
+                reply = await runPersona(text, history);
+              } else {
+                throw new Error("Fallback active");
+              }
+            } catch (personaErr) {
+              console.warn("[Telegram Webhook] Persona AI failed, using template fallback:", personaErr.message);
+              if (actionRes.success && (intent === "expense" || intent === "income")) {
+                const isIncome = intent === "income";
+                reply = `\u2705 **[CFO Padr\xE3o]** ${isIncome ? "Receita" : "Despesa"} registrada no banco de dados!
+
+\u{1F4DD} **Descri\xE7\xE3o:** ${extracted_data.descricao || "Registro via Telegram"}
+\u{1F4B0} **Valor:** R$ ${Number(extracted_data.valor).toFixed(2)}
+\u{1F4C2} **Categoria:** ${extracted_data.categoria || "Geral"}
+
+\u26A0\uFE0F *Nota: O seu registro foi salvo com sucesso, mas a IA de conversa\xE7\xE3o personalizada est\xE1 indispon\xEDvel. Verifique se a sua **Gemini API Key** est\xE1 configurada nos Ajustes.*`;
+              } else {
+                reply = `\u{1F916} **[Mobilis Executive]** Recebi seu texto: "${text}".
+
+\u26A0\uFE0F *N\xE3o foi poss\xEDvel rodar a Intelig\xEAncia Artificial (Gemini) para processar os dados ou gerar uma resposta. Por favor, verifique se a sua API Key est\xE1 salva corretamente nos Ajustes do painel.*`;
+              }
+            }
+          }
+        } catch (pipelineErr) {
+          console.error("[Telegram Webhook] Pipeline crash:", pipelineErr.message);
+          reply = `\u{1F916} **[Mobilis Executive]** Ol\xE1! Recebi sua mensagem, mas ocorreu uma falha interna no processamento. Certifique-se de configurar as chaves de API nos Ajustes do aplicativo.`;
         }
         addTelegramHistory("bot", reply);
         if (profile.telegramBotToken) {
