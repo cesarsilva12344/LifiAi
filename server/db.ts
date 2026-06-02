@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { DatabaseState, Persona, UserProfile, InboxItem } from '../src/types';
+import { DatabaseState, Persona, UserProfile, InboxItem, Category, Account, Tag } from '../src/types';
 
 const DB_FILE = process.env.VERCEL
   ? path.join('/tmp', 'db.json')
@@ -82,7 +82,7 @@ Tom elegante, calmo, altamente organizado, confiável e coordenativo.`,
 
 const DEFAULT_PROFILE: UserProfile = {
   nome: 'César',
-  appName: 'LifeOS AI',
+  appName: 'Mobilis Executive',
   geminiApiKey: process.env.GEMINI_API_KEY || '',
   deepseekApiKey: process.env.DEEPSEEK_API_KEY || '',
   qwenApiKey: process.env.QWEN_API_KEY || '',
@@ -111,6 +111,37 @@ const DEFAULT_PROFILE: UserProfile = {
   lifeScore: 82.5
 };
 
+const DEFAULT_CATEGORIES: Category[] = [
+  { id: 'cat_1', nome: 'Alimentação', tipo: 'despesa', cor: '#ef4444' },
+  { id: 'cat_2', nome: 'Transporte', tipo: 'despesa', cor: '#f97316' },
+  { id: 'cat_3', nome: 'Moradia', tipo: 'despesa', cor: '#3b82f6' },
+  { id: 'cat_4', nome: 'Saúde', tipo: 'despesa', cor: '#10b981' },
+  { id: 'cat_5', nome: 'Lazer', tipo: 'despesa', cor: '#a855f7' },
+  { id: 'cat_6', nome: 'Assinaturas', tipo: 'despesa', cor: '#ec4899' },
+  { id: 'cat_7', nome: 'Salário', tipo: 'receita', cor: '#10b981' },
+  { id: 'cat_8', nome: 'Consultoria', tipo: 'receita', cor: '#6366f1' },
+  { id: 'cat_9', nome: 'Freelance', tipo: 'receita', cor: '#14b8a6' },
+  { id: 'cat_10', nome: 'Investimentos', tipo: 'receita', cor: '#eab308' }
+];
+
+const DEFAULT_ACCOUNTS: Account[] = [
+  { id: 'acc_1', nome: 'Carteira', tipo: 'carteira', saldo_inicial: 500, saldo_atual: 500, cor: '#f59e0b' },
+  { id: 'acc_2', nome: 'Santander C.C.', tipo: 'corrente', saldo_inicial: 3000, saldo_atual: 3000, cor: '#ef4444' },
+  { id: 'acc_3', nome: 'NuConta', tipo: 'corrente', saldo_inicial: 10000, saldo_atual: 10000, cor: '#8b5cf6' }
+];
+
+const DEFAULT_TAGS: Tag[] = [
+  { id: 'tag_1', nome: 'Essencial', cor: '#64748b' },
+  { id: 'tag_2', nome: 'Lazer', cor: '#ec4899' },
+  { id: 'tag_3', nome: 'Trabalho', cor: '#3b82f6' },
+  { id: 'tag_4', nome: 'Recorrente', cor: '#10b981' }
+];
+
+const DEFAULT_CREDIT_CARDS = [
+  { id: 'card_1', nome: 'Nubank Mastercard', limite: 5000, dia_fechamento: 28, dia_vencimento: 5, cor: '#8b5cf6' },
+  { id: 'card_2', nome: 'XP Visa Infinite', limite: 8000, dia_fechamento: 15, dia_vencimento: 22, cor: '#1e293b' }
+];
+
 const DEFAULT_STATE: DatabaseState = {
   inbox: [],
   expenses: [],
@@ -126,7 +157,7 @@ const DEFAULT_STATE: DatabaseState = {
   personas: DEFAULT_PERSONAS,
   userProfile: DEFAULT_PROFILE,
   salaries: [],
-  creditCards: [],
+  creditCards: DEFAULT_CREDIT_CARDS,
   cardExpenses: [],
   decisions: [],
   energyLogs: [],
@@ -149,7 +180,10 @@ const DEFAULT_STATE: DatabaseState = {
   debts: [],
   debtPayments: [],
   budgets: [],
-  aiExtractions: []
+  aiExtractions: [],
+  categories: DEFAULT_CATEGORIES,
+  accounts: DEFAULT_ACCOUNTS,
+  tags: DEFAULT_TAGS
 };
 
 let currentDbState: DatabaseState | null = null;
@@ -181,7 +215,7 @@ const mapProfileFromSupabase = (p: any): UserProfile => {
   const cfg = p.config || {};
   return {
     nome: p.nome || 'Usuário',
-    appName: cfg.appName || 'LifeOS AI',
+    appName: cfg.appName || 'Mobilis Executive',
     geminiApiKey: cfg.gemini_api_key || '',
     deepseekApiKey: cfg.deepseek_api_key || '',
     qwenApiKey: cfg.qwen_api_key || '',
@@ -380,9 +414,13 @@ export async function initializeDatabase(): Promise<DatabaseState> {
         debts: debtsRes.data || [],
         debtPayments: debtPaymentsRes.data || [],
         budgets: budgetsRes.data || [],
-        aiExtractions: aiExtractionsRes.data || []
+        aiExtractions: aiExtractionsRes.data || [],
+        categories: DEFAULT_CATEGORIES,
+        accounts: DEFAULT_ACCOUNTS,
+        tags: DEFAULT_TAGS
       };
 
+      ensureStateIntegrity(currentDbState);
       try {
         fs.writeFileSync(DB_FILE, JSON.stringify(currentDbState, null, 2), 'utf-8');
       } catch (_) {}
@@ -396,29 +434,37 @@ export async function initializeDatabase(): Promise<DatabaseState> {
   console.log('[LifeOS AI] Loading database from local JSON file...');
   try {
     if (!fs.existsSync(DB_FILE)) {
-      currentDbState = DEFAULT_STATE;
+      currentDbState = ensureStateIntegrity({ ...DEFAULT_STATE });
       fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_STATE, null, 2), 'utf-8');
     } else {
       const data = fs.readFileSync(DB_FILE, 'utf-8');
-      currentDbState = JSON.parse(data) as DatabaseState;
+      currentDbState = ensureStateIntegrity(JSON.parse(data) as DatabaseState);
     }
   } catch (error: any) {
     console.error('Falha ao ler banco de dados JSON:', error?.message || error);
-    currentDbState = DEFAULT_STATE;
+    currentDbState = ensureStateIntegrity({ ...DEFAULT_STATE });
   }
   return currentDbState;
 }
 
+export function ensureStateIntegrity(state: DatabaseState): DatabaseState {
+  if (!state.categories || state.categories.length === 0) state.categories = DEFAULT_CATEGORIES;
+  if (!state.accounts || state.accounts.length === 0) state.accounts = DEFAULT_ACCOUNTS;
+  if (!state.tags || state.tags.length === 0) state.tags = DEFAULT_TAGS;
+  if (!state.creditCards || state.creditCards.length === 0) state.creditCards = DEFAULT_CREDIT_CARDS;
+  return state;
+}
+
 export function readDatabase(): DatabaseState {
-  if (currentDbState) return currentDbState;
+  if (currentDbState) return ensureStateIntegrity(currentDbState);
   try {
     if (!fs.existsSync(DB_FILE)) {
-      return DEFAULT_STATE;
+      return ensureStateIntegrity({ ...DEFAULT_STATE });
     }
     const data = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(data) as DatabaseState;
+    return ensureStateIntegrity(JSON.parse(data) as DatabaseState);
   } catch (error) {
-    return DEFAULT_STATE;
+    return ensureStateIntegrity({ ...DEFAULT_STATE });
   }
 }
 

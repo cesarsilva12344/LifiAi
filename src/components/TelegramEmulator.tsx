@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, Sparkles, Terminal, FileText, Plus, Trash2, CheckCircle, 
   Flame, DollarSign, Command, Mic, Square, Paperclip, Search, 
-  MoreVertical, Check, CheckCheck, PlayCircle, DownloadCloud, Image as ImageIcon
+  MoreVertical, Check, CheckCheck, PlayCircle, DownloadCloud, Image as ImageIcon, X
 } from 'lucide-react';
 import { showToast } from './Toast';
 
@@ -22,9 +22,10 @@ interface TelegramMsg {
 interface TelegramEmulatorProps {
   onDataRefresh: () => void;
   theme?: 'light' | 'dark';
+  onClose?: () => void;
 }
 
-export default function TelegramEmulator({ onDataRefresh, theme = 'light' }: TelegramEmulatorProps) {
+export default function TelegramEmulator({ onDataRefresh, theme = 'light', onClose }: TelegramEmulatorProps) {
   const [messages, setMessages] = useState<TelegramMsg[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -265,10 +266,10 @@ export default function TelegramEmulator({ onDataRefresh, theme = 'light' }: Tel
     headerBg: 'bg-white border-slate-200 text-slate-900',
     footerBg: 'bg-white border-slate-200',
     incomingBubble: 'bg-white text-slate-800 shadow-sm border border-slate-150',
-    outgoingBubble: 'bg-[#eeffde] text-slate-850 shadow-sm border border-[#e2f0d3]',
+    outgoingBubble: 'bg-[#eeffde] text-slate-800 shadow-sm border border-[#e2f0d3]',
     metaText: 'text-slate-500',
     headerSubtext: 'text-[#4f93e3]',
-    inputBg: 'bg-slate-50 border-slate-200 text-slate-850',
+    inputBg: 'bg-slate-50 border-slate-200 text-slate-800',
     quickBtnBg: 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'
   };
 
@@ -294,13 +295,24 @@ export default function TelegramEmulator({ onDataRefresh, theme = 'light' }: Tel
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-3 text-slate-400">
-          <button className="hover:text-blue-500 cursor-pointer transition">
+        <div className="flex items-center gap-2.5 text-slate-400">
+          <button className="hover:text-blue-500 cursor-pointer transition p-1">
             <Search className="w-4 h-4" />
           </button>
-          <button className="hover:text-blue-500 cursor-pointer transition">
-            <MoreVertical className="w-4 h-4" />
-          </button>
+          {onClose && (
+            <button 
+              onClick={onClose} 
+              className="hover:text-red-500 hover:bg-slate-500/10 rounded p-1 cursor-pointer transition shrink-0"
+              title="Fechar Emulador"
+            >
+              <X className="w-4.5 h-4.5" />
+            </button>
+          )}
+          {!onClose && (
+            <button className="hover:text-blue-500 cursor-pointer transition p-1">
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -523,7 +535,7 @@ export default function TelegramEmulator({ onDataRefresh, theme = 'light' }: Tel
                 ? 'bg-rose-600 border-rose-500 animate-pulse text-white' 
                 : theme === 'dark' 
                   ? 'bg-[#182533] border-[#1f2d3a] text-slate-400 hover:text-white'
-                  : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-850'
+                  : 'bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-800'
             }`}
             title={isRecording ? 'Parar e transcrever' : 'Gravar áudio'}
           >

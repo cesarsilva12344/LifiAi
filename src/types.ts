@@ -12,16 +12,25 @@ export interface Expense {
   id: string;
   valor: number;
   categoria: string;
+  categoria_id?: string;
+  conta_id?: string;
+  cartao_id?: string;
   descricao: string;
   data: string; // YYYY-MM-DD
+  tag_ids?: string[];
+  quitada?: boolean;
 }
 
 export interface Income {
   id: string;
   valor: number;
   categoria: string;
+  categoria_id?: string;
+  conta_id?: string;
   descricao: string;
   data: string; // YYYY-MM-DD
+  tag_ids?: string[];
+  quitada?: boolean;
 }
 
 export interface Task {
@@ -127,6 +136,7 @@ export interface CreditCard {
   limite: number;
   dia_fechamento: number;
   dia_vencimento: number;
+  cor?: string;
 }
 
 export interface CardExpense {
@@ -268,6 +278,28 @@ export interface AiExtraction {
   processed_at?: string;
 }
 
+export interface Category {
+  id: string;
+  nome: string;
+  tipo: 'receita' | 'despesa';
+  cor: string;
+}
+
+export interface Account {
+  id: string;
+  nome: string;
+  tipo: 'carteira' | 'corrente' | 'poupança' | 'investimento';
+  saldo_inicial: number;
+  saldo_atual: number;
+  cor: string;
+}
+
+export interface Tag {
+  id: string;
+  nome: string;
+  cor: string;
+}
+
 export interface DatabaseState {
   inbox: InboxItem[];
   expenses: Expense[];
@@ -298,4 +330,7 @@ export interface DatabaseState {
   debtPayments: DebtPayment[];
   budgets: Budget[];
   aiExtractions: AiExtraction[];
+  categories: Category[];
+  accounts: Account[];
+  tags: Tag[];
 }

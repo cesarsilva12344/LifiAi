@@ -1,10 +1,10 @@
-import React from 'react';
+﻿import React from 'react';
 import { motion } from 'framer-motion';
 import { 
-  LayoutGrid, Clock, DollarSign, Layers, Flame, BrainCircuit, User, 
-  HelpCircle, AlertTriangle, Calendar, Award, Wind, Sliders, Zap, Heart
+  LayoutGrid, DollarSign, Settings, AlertTriangle, Award, Sliders, Zap
 } from 'lucide-react';
 import { useLifeOSStore } from '../lib/store';
+import { DatabaseState } from '../types';
 
 interface SidebarProps {
   activeTab: string;
@@ -13,42 +13,47 @@ interface SidebarProps {
   setTelegramOpen: (open: boolean) => void;
   appName: string;
   theme?: 'light' | 'dark';
+  data?: DatabaseState | null;
 }
 
-export default function Sidebar({ activeTab, setActiveTab, telegramOpen, setTelegramOpen, appName, theme = 'light' }: SidebarProps) {
-  const [botStatus, setBotStatus] = React.useState<any>(null);
-  const { mode, toggleMode, activePersona } = useLifeOSStore();
-
-  React.useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await fetch('/api/telegram/status');
-        if (res.ok) setBotStatus(await res.json());
-      } catch (_) {}
-    };
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 15000);
-    return () => clearInterval(interval);
-  }, []);
+export default function Sidebar({ activeTab, setActiveTab, telegramOpen, setTelegramOpen, appName, theme = 'light', data }: SidebarProps) {
+  const { mode, toggleMode } = useLifeOSStore();
 
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid className="w-4 h-4" /> },
-    { id: 'timeline', label: 'Timeline', icon: <Clock className="w-4 h-4" /> },
-    { id: 'calendar', label: 'Google Agenda', icon: <Calendar className="w-4 h-4" /> },
-    { id: 'finances', label: 'Finanças', icon: <DollarSign className="w-4 h-4" /> },
-    { id: 'projects', label: 'Projetos', icon: <Layers className="w-4 h-4" /> },
-    { id: 'goals', label: 'Hábitos & Metas', icon: <Flame className="w-4 h-4" /> },
-    { id: 'decisions', label: 'Decisões', icon: <Wind className="w-4 h-4" /> },
-    { id: 'meditation', label: 'Mindfulness', icon: <Heart className="w-4 h-4" /> },
-    { id: 'simulator', label: 'Simulador', icon: <Sliders className="w-4 h-4" /> },
-    { id: 'memory', label: 'Memória Inteligente', icon: <BrainCircuit className="w-4 h-4" /> },
-    { id: 'profile', label: 'Personas & Perfil', icon: <User className="w-4 h-4" /> },
+    { id: 'dashboard', label: 'Dashboard CFO', icon: <LayoutGrid className="w-4 h-4" /> },
+    { id: 'finances', label: 'Lançamentos & Fluxo', icon: <DollarSign className="w-4 h-4" /> },
+    { id: 'simulator', label: 'Simulador What-If', icon: <Sliders className="w-4 h-4" /> },
+    { id: 'profile', label: 'Configurações', icon: <Settings className="w-4 h-4" /> },
   ];
 
   const isDark = theme === 'dark' || mode === 'war' || mode === 'zen';
 
+  // Calculate Savings Rate / CFO Health Score
+  const totalIncome = data?.income?.reduce((sum, item) => sum + item.valor, 0) || 0;
+  const totalExpenses = data?.expenses?.reduce((sum, item) => sum + item.valor, 0) || 0;
+  const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
+  
+  // Dynamic Score formula
+  let financialScore = 50;
+  let statusText = 'Equilíbrio Frágil';
+  if (totalIncome > 0) {
+    if (savingsRate > 40) {
+      financialScore = Math.min(100, 80 + (savingsRate - 40) * 0.3);
+      statusText = 'Superávit / Alta Performance';
+    } else if (savingsRate > 20) {
+      financialScore = 70 + (savingsRate - 20) * 0.5;
+      statusText = 'Saúde Estável';
+    } else if (savingsRate > 0) {
+      financialScore = 50 + savingsRate;
+      statusText = 'Poupança Mínima';
+    } else {
+      financialScore = Math.max(0, 50 + savingsRate);
+      statusText = 'Deficit / Atenção Urgente';
+    }
+  }
+
   return (
-    <div className={`w-64 flex flex-col justify-between h-full transition duration-300 ${
+    <div className={`w-64 md:flex hidden flex-col justify-between h-full transition duration-300 ${
       isDark 
         ? 'bg-[#0d0e11] border-r border-slate-800 text-gray-400' 
         : 'bg-white border-r border-slate-200 text-slate-600'
@@ -56,7 +61,7 @@ export default function Sidebar({ activeTab, setActiveTab, telegramOpen, setTele
       <div className="overflow-y-auto custom-scrollbar flex-1">
         {/* Branding Logo */}
         <div className={`p-6 border-b flex items-center justify-between transition ${
-          isDark ? 'border-slate-850' : 'border-slate-100'
+          isDark ? 'border-slate-800' : 'border-slate-100'
         }`}>
           <div className="flex items-center gap-2 group cursor-pointer">
             <motion.div 
@@ -64,49 +69,51 @@ export default function Sidebar({ activeTab, setActiveTab, telegramOpen, setTele
               transition={{ duration: 0.4 }}
               className="w-6 h-6 rounded-lg bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center font-mono text-xs font-bold text-white shadow-md"
             >
-              L
+              C
             </motion.div>
             <span className={`font-mono text-sm font-bold tracking-widest uppercase transition ${
               isDark ? 'text-white' : 'text-slate-800'
-            }`}>{appName}</span>
+            }`}>{appName} CFO</span>
           </div>
           <span className={`text-[8px] font-bold font-mono px-1.5 py-0.5 rounded uppercase tracking-wide transition ${
             isDark 
               ? 'text-blue-400 bg-blue-950/40 border border-blue-800/25' 
               : 'text-blue-650 bg-blue-50 border border-blue-200'
           }`}>
-            v1.1
+            PRO
           </span>
         </div>
 
-        {/* Premium Life Score Widget */}
+        {/* Premium CFO Health Score Widget */}
         <div className={`mx-4 mt-5 p-4 rounded-2xl border transition ${
           isDark 
             ? 'bg-[#090a0d] border-slate-800/80 shadow-md' 
             : 'bg-slate-50 border-slate-200 shadow-sm'
         }`}>
           <div className="flex items-center justify-between text-[10px] font-mono text-slate-400">
-            <span>Life Score Unificado</span>
-            <span className="text-emerald-500 font-bold tracking-wide flex items-center gap-0.5">
-              ▲ 2.4%
+            <span>CFO Health Score</span>
+            <span className={`font-bold tracking-wide flex items-center gap-0.5 ${savingsRate >= 20 ? 'text-emerald-500' : 'text-rose-500'}`}>
+              {savingsRate >= 0 ? `▲ ${savingsRate.toFixed(1)}%` : `▼ ${Math.abs(savingsRate).toFixed(1)}%`}
             </span>
           </div>
           <div className="flex items-center gap-3 mt-2.5">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center shadow-md">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-md">
               <Award className="w-5.5 h-5.5" />
             </div>
             <div>
               <h3 className={`text-lg font-black font-mono leading-none ${isDark ? 'text-white' : 'text-slate-800'}`}>
-                82.5
+                {financialScore.toFixed(1)}
               </h3>
-              <span className="text-[9px] text-slate-400 uppercase tracking-wider block mt-1 font-semibold leading-none">Status: High Performance</span>
+              <span className="text-[9px] text-slate-400 uppercase tracking-wider block mt-1 font-semibold leading-none">
+                {statusText}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Operational Modes Control */}
         <div className="px-4 mt-5 space-y-2">
-          <span className="text-[9px] font-mono font-bold tracking-widest text-slate-450 uppercase block pl-1">Modos de Energia</span>
+          <span className="text-[9px] font-mono font-bold tracking-widest text-slate-450 uppercase block pl-1">CFO Energia</span>
           <button 
             onClick={toggleMode}
             className={`w-full py-2 px-3 text-[11px] font-mono font-bold uppercase rounded-xl border flex items-center justify-between cursor-pointer transition shadow-sm ${
@@ -119,7 +126,7 @@ export default function Sidebar({ activeTab, setActiveTab, telegramOpen, setTele
           >
             <span className="flex items-center gap-1.5">
               <Zap className={`w-3.5 h-3.5 ${mode === 'war' ? 'text-red-500 animate-pulse' : mode === 'zen' ? 'text-stone-400' : 'text-amber-500'}`} />
-              Modo: {mode}
+              Filtro: {mode === 'war' ? 'Modo Crise' : 'Modo Padrão'}
             </span>
             <span className="text-[8px] bg-slate-200 dark:bg-slate-800 px-1.5 py-0.5 rounded">Alternar</span>
           </button>
@@ -130,7 +137,7 @@ export default function Sidebar({ activeTab, setActiveTab, telegramOpen, setTele
           <span className={`text-[9px] font-bold tracking-widest uppercase block px-3 mb-2.5 transition ${
             isDark ? 'text-slate-500' : 'text-slate-400'
           }`}>
-            Menu Operacional
+            Menu CFO
           </span>
           {menuItems.map((item) => {
             const isActive = activeTab === item.id;
@@ -171,62 +178,15 @@ export default function Sidebar({ activeTab, setActiveTab, telegramOpen, setTele
         </div>
       </div>
 
-      {/* Bot status indicator */}
-      <div className={`px-4 py-2.5 mx-4 mb-4 rounded-lg flex items-center justify-between text-[10px] font-mono transition border ${
-        isDark
-          ? 'bg-slate-900/40 border-slate-800 text-slate-500'
-          : 'bg-slate-50 border-slate-200 text-slate-400'
-      }`}>
-        <span>Telegram Bot:</span>
-        <div className="flex items-center gap-1.5">
-          <motion.div 
-            animate={{ scale: [1, 1.25, 1] }}
-            transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-            className={`w-2 h-2 rounded-full ${
-              botStatus?.configured 
-                ? 'bg-emerald-500' 
-                : botStatus?.hasToken 
-                  ? 'bg-amber-500' 
-                  : 'bg-slate-400'
-            }`}
-          />
-          <span className={`font-bold transition ${
-            isDark ? 'text-slate-350' : 'text-slate-700'
-          }`}>
-            {botStatus?.configured 
-              ? 'ATIVO' 
-              : botStatus?.hasToken 
-                ? 'SEM CHAT ID' 
-                : 'DESATIVADO'}
-          </span>
-        </div>
-      </div>
-
       {/* Footer controls */}
       <div className={`p-4 border-t space-y-2 transition ${
         isDark ? 'border-slate-800' : 'border-slate-100'
       }`}>
-        {/* Telegram operator drawer toggle */}
-        <button
-          onClick={() => setTelegramOpen(!telegramOpen)}
-          className={`w-full text-xs font-mono py-2 rounded-lg border flex items-center justify-center gap-2 font-bold cursor-pointer transition select-none ${
-            isDark
-              ? telegramOpen
-                ? 'bg-blue-950/20 text-blue-450 border-blue-900/30 hover:border-blue-500'
-                : 'bg-slate-800/40 text-slate-300 border-slate-750 hover:text-white hover:border-slate-500'
-              : telegramOpen 
-                ? 'bg-blue-50 text-blue-600 border-blue-200 hover:border-blue-400' 
-                : 'bg-slate-100 text-slate-700 border-slate-200 hover:text-slate-900 hover:border-slate-350'
-          }`}
-        >
-          <span>💬 Operator: {telegramOpen ? 'Visible' : 'Hidden'}</span>
-        </button>
-
         <div className={`text-[10px] font-mono text-center flex items-center justify-center gap-1.5 transition ${
-          isDark ? 'text-slate-650' : 'text-slate-400'
+          isDark ? 'text-slate-655' : 'text-slate-400'
         }`}>
           <AlertTriangle className="w-3 h-3 text-yellow-500" />
-          <span>Desktop Optimized</span>
+          <span>Contabilidade Consolidada</span>
         </div>
       </div>
     </div>

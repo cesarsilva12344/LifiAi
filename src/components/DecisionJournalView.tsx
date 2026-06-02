@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Calendar, HelpCircle, Eye, CheckCircle2, ChevronRight, Play, RefreshCw, Plus, X } from 'lucide-react';
 import { DatabaseState, Decision } from '../types';
 import { showToast } from './Toast';
@@ -94,7 +94,7 @@ export default function DecisionJournalView({ data, onRefresh, theme = 'light' }
       }
     : {
         cardBg: 'bg-white border-slate-200 text-slate-800',
-        titleText: 'text-slate-850',
+        titleText: 'text-slate-800',
         subText: 'text-slate-500',
         divider: 'border-slate-100',
         formBg: 'bg-slate-50/60 border-slate-200',
@@ -157,7 +157,7 @@ export default function DecisionJournalView({ data, onRefresh, theme = 'light' }
 
                   {/* Decision Box */}
                   <div className={`p-5 border rounded-2xl transition duration-200 ${c.rowBg} hover:border-indigo-400/50`}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-850 pb-2 mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2 mb-3">
                       <h4 className="text-xs font-bold leading-snug">{dec.title}</h4>
                       <div className="flex items-center gap-2 text-[9px] font-mono font-bold uppercase shrink-0">
                         <span className="text-slate-400">Data: {formattedDate}</span>

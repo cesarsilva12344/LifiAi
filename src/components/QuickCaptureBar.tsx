@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+﻿import React, { useState, useRef } from 'react';
 import { useLifeOSStore } from '../lib/store';
 import { ArrowUp, Mic, Image, Text, AlertCircle } from 'lucide-react';
 import { showToast } from './Toast';
@@ -152,7 +152,7 @@ export default function QuickCaptureBar({ onDataRefresh, theme = 'light' }: Quic
   const isDark = theme === 'dark';
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-2xl z-50 px-4">
+    <div className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 w-full max-w-2xl z-50 px-4">
       <div className={`flex items-center gap-2 border rounded-2xl p-2.5 shadow-2xl transition duration-200 ${
         isDark 
           ? 'bg-[#111318]/90 border-[#1d202a]/80 backdrop-blur text-slate-100' 

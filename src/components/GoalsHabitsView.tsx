@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Flame, Target, CheckCircle2, Circle, Trophy, Calendar, Sparkles, TrendingUp, Trash2, Plus } from 'lucide-react';
 import { DatabaseState, Habit, Goal } from '../types';
 import { showToast } from './Toast';
@@ -144,7 +144,7 @@ export default function GoalsHabitsView({ data, onRefresh, theme = 'light' }: Go
     mutedText: 'text-slate-400',
     divider: 'border-slate-100',
     formBg: 'bg-slate-50 border-slate-200 text-slate-800',
-    inputBg: 'bg-slate-50 border-slate-200 text-slate-850 placeholder-slate-400',
+    inputBg: 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400',
     listBg: 'bg-white border-slate-200 hover:border-slate-350 text-slate-700',
     habitCardBg: 'bg-white border-slate-200',
     badgeBg: 'bg-slate-100 border-slate-200',
@@ -175,7 +175,7 @@ export default function GoalsHabitsView({ data, onRefresh, theme = 'light' }: Go
             value={newHabitNome}
             onChange={e => setNewHabitNome(e.target.value)}
             className={`flex-1 min-w-[150px] bg-transparent text-xs border-b focus:border-orange-500 focus:outline-none py-1 px-1.5 transition-colors ${
-              theme === 'dark' ? 'border-[#2d2f3d] text-white' : 'border-slate-200 text-slate-850'
+              theme === 'dark' ? 'border-[#2d2f3d] text-white' : 'border-slate-200 text-slate-800'
             }`}
           />
           <select
@@ -185,8 +185,8 @@ export default function GoalsHabitsView({ data, onRefresh, theme = 'light' }: Go
               theme === 'dark' ? 'bg-[#090a0d] text-gray-300 border-[#2d2f3d]' : 'bg-white text-slate-700 border-slate-200'
             }`}
           >
-            <option value="diaria" className={theme === 'dark' ? 'bg-[#111318] text-white' : 'bg-white text-slate-850'}>Diário</option>
-            <option value="semanal" className={theme === 'dark' ? 'bg-[#111318] text-white' : 'bg-white text-slate-850'}>Semanal</option>
+            <option value="diaria" className={theme === 'dark' ? 'bg-[#111318] text-white' : 'bg-white text-slate-800'}>Diário</option>
+            <option value="semanal" className={theme === 'dark' ? 'bg-[#111318] text-white' : 'bg-white text-slate-800'}>Semanal</option>
           </select>
           <button
             type="submit"
@@ -274,7 +274,7 @@ export default function GoalsHabitsView({ data, onRefresh, theme = 'light' }: Go
               value={newGoalTitle}
               onChange={e => setNewGoalTitle(e.target.value)}
               className={`w-full bg-transparent text-xs border-b focus:border-blue-400 focus:outline-none py-1 px-1.5 transition-colors ${
-                theme === 'dark' ? 'border-[#2d2f3d] text-white' : 'border-slate-200 text-slate-850'
+                theme === 'dark' ? 'border-[#2d2f3d] text-white' : 'border-slate-200 text-slate-800'
               }`}
             />
           </div>
@@ -287,7 +287,7 @@ export default function GoalsHabitsView({ data, onRefresh, theme = 'light' }: Go
               value={newGoalMeta}
               onChange={e => setNewGoalMeta(e.target.value)}
               className={`w-full bg-transparent text-xs border-b focus:border-blue-400 focus:outline-none py-1 px-1.5 transition-colors ${
-                theme === 'dark' ? 'border-[#2d2f3d] text-white font-mono' : 'border-slate-200 text-slate-850 font-mono font-semibold'
+                theme === 'dark' ? 'border-[#2d2f3d] text-white font-mono' : 'border-slate-200 text-slate-800 font-mono font-semibold'
               }`}
             />
           </div>
@@ -299,7 +299,7 @@ export default function GoalsHabitsView({ data, onRefresh, theme = 'light' }: Go
               value={newGoalPrazo}
               onChange={e => setNewGoalPrazo(e.target.value)}
               className={`w-full bg-transparent text-xs border-b focus:border-blue-400 focus:outline-none py-1 px-1.5 cursor-pointer transition-colors ${
-                theme === 'dark' ? 'border-[#2d2f3d] text-white font-mono' : 'border-slate-200 text-slate-850 font-mono font-semibold'
+                theme === 'dark' ? 'border-[#2d2f3d] text-white font-mono' : 'border-slate-200 text-slate-800 font-mono font-semibold'
               }`}
             />
           </div>

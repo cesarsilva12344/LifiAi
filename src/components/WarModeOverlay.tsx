@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertOctagon, TrendingDown, Clock, AlertTriangle, Play, Flame, Layers } from 'lucide-react';
 import { DatabaseState } from '../types';
 
@@ -9,15 +9,15 @@ interface WarModeProps {
 }
 
 export default function WarModeOverlay({ data, onRefresh, theme = 'light' }: WarModeProps) {
-  const totalIncome = data.income.reduce((sum, item) => sum + item.valor, 0);
-  const totalExpenses = data.expenses.reduce((sum, item) => sum + item.valor, 0);
+  const totalIncome = data.income?.reduce((sum, item) => sum + item.valor, 0) || 0;
+  const totalExpenses = data.expenses?.reduce((sum, item) => sum + item.valor, 0) || 0;
   const net = totalIncome - totalExpenses;
 
   // Urgent pending tasks (high priority)
-  const urgentTasks = data.tasks.filter(t => t.status === 'pending' && t.prioridade === 'high');
+  const urgentTasks = (data.tasks || []).filter(t => t.status === 'pending' && t.prioridade === 'high');
 
   // Debts about to expire or overdue (ABERTA or ATRASADA)
-  const criticalDebts = data.debts.filter(d => d.status === 'ABERTA' || d.status === 'ATRASADA' || d.status === 'PARCIAL');
+  const criticalDebts = (data.debts || []).filter(d => d.status === 'ABERTA' || d.status === 'ATRASADA' || d.status === 'PARCIAL');
 
   // Leakage calculations (categories where real > planned budget, or >= 80% planned)
   const budgetsList = data.budgets || [];

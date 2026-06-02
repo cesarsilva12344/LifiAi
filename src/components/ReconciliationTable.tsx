@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { showToast } from './Toast';
 
@@ -41,7 +41,7 @@ export default function ReconciliationTable({ onRefresh, theme = 'light' }: Reco
         cardBg: 'bg-white border-slate-200 text-slate-800',
         tableHeader: 'bg-slate-50 border-slate-150 text-slate-550',
         rowHover: 'hover:bg-slate-50 border-slate-150',
-        titleText: 'text-slate-850'
+        titleText: 'text-slate-800'
       };
 
   return (

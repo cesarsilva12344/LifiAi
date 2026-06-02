@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Compass, Heart, Wind, HelpCircle, Check, Award } from 'lucide-react';
 import { showToast } from './Toast';
 

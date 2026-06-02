@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Search, BrainCircuit, Sparkles, Database, FileText, Lightbulb, Compass, MessageSquareCode } from 'lucide-react';
 import { DatabaseState } from '../types';
 import { showToast } from './Toast';

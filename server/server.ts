@@ -934,6 +934,68 @@ async function startServer() {
   });
 
   // ----------------------------------------------------
+  // RELATIONALLY STRUCTURED SYSTEM ENDPOINTS: categories, accounts, tags
+  // ----------------------------------------------------
+
+  // Categories Endpoints
+  app.post('/api/db/categories', (req, res) => {
+    try {
+      const db = readDatabase();
+      const newCategory = {
+        id: 'cat_' + Date.now(),
+        nome: req.body.nome || 'Nova Categoria',
+        tipo: req.body.tipo || 'despesa',
+        cor: req.body.cor || '#3b82f6'
+      };
+      if (!db.categories) db.categories = [];
+      db.categories.unshift(newCategory);
+      writeDatabase(db);
+      res.json(newCategory);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Accounts Endpoints
+  app.post('/api/db/accounts', (req, res) => {
+    try {
+      const db = readDatabase();
+      const newAccount = {
+        id: 'acc_' + Date.now(),
+        nome: req.body.nome || 'Nova Conta',
+        tipo: req.body.tipo || 'carteira',
+        saldo_inicial: parseFloat(req.body.saldo_inicial) || 0,
+        saldo_atual: parseFloat(req.body.saldo_inicial) || 0,
+        cor: req.body.cor || '#3b82f6'
+      };
+      if (!db.accounts) db.accounts = [];
+      db.accounts.unshift(newAccount);
+      writeDatabase(db);
+      res.json(newAccount);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Tags Endpoints
+  app.post('/api/db/tags', (req, res) => {
+    try {
+      const db = readDatabase();
+      const newTag = {
+        id: 'tag_' + Date.now(),
+        nome: req.body.nome || 'Nova Tag',
+        cor: req.body.cor || '#3b82f6'
+      };
+      if (!db.tags) db.tags = [];
+      db.tags.unshift(newTag);
+      writeDatabase(db);
+      res.json(newTag);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // ----------------------------------------------------
   // NEW TABLES ENDPOINTS: salaries, creditCards, cardExpenses
   // ----------------------------------------------------
 
@@ -988,7 +1050,8 @@ async function startServer() {
         nome: req.body.nome || 'Novo Cartão',
         limite: parseFloat(req.body.limite) || 0,
         dia_fechamento: parseInt(req.body.dia_fechamento) || 5,
-        dia_vencimento: parseInt(req.body.dia_vencimento) || 12
+        dia_vencimento: parseInt(req.body.dia_vencimento) || 12,
+        cor: req.body.cor || '#8b5cf6'
       };
       if (!db.creditCards) db.creditCards = [];
       db.creditCards.unshift(newCard);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Sparkles, RefreshCw, Sun, CheckSquare, Zap, DollarSign } from 'lucide-react';
 import { DatabaseState } from '../types';
 import { showToast } from './Toast';

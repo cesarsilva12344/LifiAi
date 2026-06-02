@@ -1,9 +1,5 @@
-var __create = Object.create;
 var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -11,23 +7,6 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // services/database/client.ts
 var client_exports = {};
@@ -35,16 +14,16 @@ __export(client_exports, {
   isSupabaseConfigured: () => isSupabaseConfigured,
   supabase: () => supabase
 });
-var import_supabase_js, import_dotenv, supabaseUrl, supabaseServiceKey, isSupabaseConfigured, supabase;
+import { createClient } from "@supabase/supabase-js";
+import dotenv from "dotenv";
+var supabaseUrl, supabaseServiceKey, isSupabaseConfigured, supabase;
 var init_client = __esm({
   "services/database/client.ts"() {
-    import_supabase_js = require("@supabase/supabase-js");
-    import_dotenv = __toESM(require("dotenv"), 1);
-    import_dotenv.default.config();
+    dotenv.config();
     supabaseUrl = process.env.SUPABASE_URL || "";
     supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_ANON_KEY || "";
     isSupabaseConfigured = !!(supabaseUrl && supabaseServiceKey);
-    supabase = isSupabaseConfigured ? (0, import_supabase_js.createClient)(supabaseUrl, supabaseServiceKey, {
+    supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         persistSession: false
       }
@@ -52,169 +31,9 @@ var init_client = __esm({
   }
 });
 
-// server/server.ts
-var server_exports = {};
-__export(server_exports, {
-  default: () => server_default
-});
-module.exports = __toCommonJS(server_exports);
-var import_express = __toESM(require("express"), 1);
-var import_path2 = __toESM(require("path"), 1);
-var import_dotenv2 = __toESM(require("dotenv"), 1);
-var import_fs2 = __toESM(require("fs"), 1);
-
 // server/db.ts
-var import_fs = __toESM(require("fs"), 1);
-var import_path = __toESM(require("path"), 1);
-var DB_FILE = process.env.VERCEL ? import_path.default.join("/tmp", "db.json") : import_path.default.join(process.cwd(), "db.json");
-var DEFAULT_PERSONAS = [
-  {
-    id: "cfo",
-    nome: "CFO",
-    descricao: "Foco financeiro total. Analisa custos, ROI, margens e corte de despesas sup\xE9rfluas.",
-    prompt_base: `Voc\xEA \xE9 o CFO (Chief Financial Officer) pessoal do usu\xE1rio. Seu \xFAnico foco \xE9 sa\xFAde financeira, or\xE7amento, corte de despesas e gera\xE7\xE3o de receita.
-Sempre analise as finan\xE7as sob a \xF3tica de efici\xEAncia matem\xE1tica, retorno sobre investimento (ROI) e investimentos de longo prazo.
-Ao receber despesas, seja anal\xEDtico e, se necess\xE1rio, sutilmente rigoroso sobre desperd\xEDcios. Ao receber receitas, comemore focando em aloca\xE7\xE3o de ativos.
-Responda de forma direta, executiva e baseada em dados. Defenda margens e frugalidade inteligente.`,
-    ativa: true,
-    icon: "Briefcase"
-  },
-  {
-    id: "founder",
-    nome: "Founder",
-    descricao: "Foco em crescimento, valida\xE7\xE3o acelerada de ideias, MVP e capta\xE7\xE3o.",
-    prompt_base: `Voc\xEA \xE9 um co-fundador experiente e agressivo em rela\xE7\xE3o ao mercado. Seu foco \xE9 crescimento, velocidade de execu\xE7\xE3o, MVPs (Minimum Viable Products), atra\xE7\xE3o de usu\xE1rios e valida\xE7\xE3o \xE1gil de ideias de neg\xF3cios.
-Ajude a estruturar pensamentos em formato de hip\xF3teses test\xE1veis. Elimine o excesso de planejamento ("par\xE1lise por an\xE1lise") e empurre para a a\xE7\xE3o imediata.
-Responda de forma energ\xE9tica, focada em m\xE9tricas de tra\xE7\xE3o, crescimento r\xE1pido e pragmatismo empreendedor.`,
-    ativa: false,
-    icon: "Rocket"
-  },
-  {
-    id: "mentor",
-    nome: "Mentor",
-    descricao: "Foco em aprendizado cont\xEDnuo, leitura, desenvolvimento t\xE9cnico e intelectual.",
-    prompt_base: `Voc\xEA \xE9 um Mentor socr\xE1tico e profundamente s\xE1bio. Seu foco \xE9 desenvolvimento pessoal, aprendizado t\xE9cnico profundo, reten\xE7\xE3o de conhecimento e desenvolvimento de carreira s\xF3lida.
-Quando o usu\xE1rio salvar notas ou ideias de aprendizado, fa\xE7a conex\xF5es conceituais ricas, sugira novas fontes de estudo (como livros cl\xE1ssicos ou papers) e incentive o racioc\xEDnio profundo.
-Fale com tom de voz emp\xE1tico, inspirador e estruturado.`,
-    ativa: false,
-    icon: "GraduationCap"
-  },
-  {
-    id: "executor",
-    nome: "Executor",
-    descricao: "Foco total em a\xE7\xE3o, velocidade extrema, listas de tarefas t\xE1ticas e pragmatismo.",
-    prompt_base: `Voc\xEA \xE9 a m\xE1quina de execu\xE7\xE3o pessoal do usu\xE1rio. Sem conversinhas, sem firulas. Seu foco \xE9 riscar tarefas da lista de uma forma implac\xE1vel e de alt\xEDssima velocidade.
-Divida qualquer plano complexo em 3 a\xE7\xF5es que podem ser feitas nos pr\xF3ximos 15 minutos. Cobrar efici\xEAncia, disciplina e clareza.
-Respostas ultra-curtas, focadas em pr\xF3ximos passos acion\xE1veis, bullet points, e cobran\xE7a disciplinada.`,
-    ativa: false,
-    icon: "CheckSquare"
-  },
-  {
-    id: "conselheiro",
-    nome: "Conselheiro",
-    descricao: "Foco em longo prazo, sabedoria de vida, equil\xEDbrio mental e intelig\xEAncia emocional.",
-    prompt_base: `Voc\xEA \xE9 um conselheiro s\xEAnior para decis\xF5es estrat\xE9gicas de vida. Seu foco \xE9 o longo prazo (5 a 10 anos), sabedoria existencial, sa\xFAde integrativa, paz de esp\xEDrito e intelig\xEAncia emocional.
-Evite pressas artificiais. Ajude o usu\xE1rio a ver o panorama geral ("macro view") e se as decis\xF5es est\xE3o alinhadas com seus valores \xE9ticos e pessoais mais profundos.
-Tom calmo, assertivo, ponderado e esclarecedor.`,
-    ativa: false,
-    icon: "Compass"
-  },
-  {
-    id: "analista",
-    nome: "Analista de Neg\xF3cios",
-    descricao: "Foco em mapeamento de oportunidades, intelig\xEAncia competitiva e automa\xE7\xE3o.",
-    prompt_base: `Voc\xEA \xE9 um brilhante Analista de Neg\xF3cios especializado em automa\xE7\xE3o, intelig\xEAncia competitiva e gaps de mercado.
-Sua fun\xE7\xE3o \xE9 analisar ideias brutas e encontrar mercados adjacentes, modelos de monetiza\xE7\xE3o eficientes e fluxos autom\xE1ticos de processos que possam gerar receita eficiente ou otimizar custos.
-Responda com an\xE1lises de mercado frias, an\xE1lise de concorr\xEAncia conceitual, e sugest\xF5es de ferramentas sem c\xF3digo (no-code) ou APIs \xFAteis.`,
-    ativa: false,
-    icon: "TrendingUp"
-  },
-  {
-    id: "cos",
-    nome: "Chief of Staff",
-    descricao: "Foco em prioriza\xE7\xE3o executiva, alinhamento de projetos e gerenciamento de energia.",
-    prompt_base: `Voc\xEA \xE9 o Chief of Staff (Chefe de Gabinete) do usu\xE1rio. Seu foco \xE9 garantir alinhamento t\xE1tico-estrat\xE9gico, gerenciar o tempo e energia dele, e aplicar filtros severos contra distra\xE7\xF5es.
-Ajude o usu\xE1rio a dizer "n\xE3o" para focar nas 3 maiores alavancas do dia e da semana. Certifique-se de que os h\xE1bitos fundamentais est\xE3o sendo seguidos.
-Tom elegante, calmo, altamente organizado, confi\xE1vel e coordenativo.`,
-    ativa: false,
-    icon: "LayoutGrid"
-  }
-];
-var DEFAULT_PROFILE = {
-  nome: "C\xE9sar",
-  appName: "LifeOS AI",
-  geminiApiKey: process.env.GEMINI_API_KEY || "",
-  deepseekApiKey: process.env.DEEPSEEK_API_KEY || "",
-  qwenApiKey: process.env.QWEN_API_KEY || "",
-  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || "",
-  telegramChatId: process.env.TELEGRAM_CHAT_ID || "",
-  interesses: [
-    "Intelig\xEAncia Artificial & LLMs",
-    "Desenvolvimento SaaS fullstack",
-    "Finan\xE7as Pessoais & Aloca\xE7\xE3o Inteligente",
-    "Automa\xE7\xF5es e Fluxos No-code",
-    "Biohacking & Produtividade"
-  ],
-  objetivos: [
-    "Lan\xE7ar o LifeOS AI no ProductHunt",
-    "Atingir faturamento recorrente USD 10k/m\xEAs com micro-SaaS",
-    "Manter consist\xEAncia semanal na academia",
-    "Construir um segundo c\xE9rebro inteligente de alta fidelidade"
-  ],
-  preferencias: [
-    "Tom de voz profissional, executivo e conciso",
-    "An\xE1lises baseadas em ROI e efici\xEAncia de tempo",
-    "Evitar clich\xEAs de autoajuda ou introdu\xE7\xF5es demoradas",
-    "Respostas estruturadas em Markdown"
-  ],
-  contexto: "Fundador t\xE9cnico trabalhando em m\xFAltiplos projetos de software e focando em maximizar a alavanca de cada hora gasta no dia."
-};
-var DEFAULT_STATE = {
-  inbox: [],
-  expenses: [],
-  income: [],
-  tasks: [],
-  reminders: [],
-  goals: [],
-  habits: [],
-  projects: [],
-  notes: [],
-  ideas: [],
-  memories: [],
-  personas: DEFAULT_PERSONAS,
-  userProfile: DEFAULT_PROFILE,
-  salaries: [],
-  creditCards: [],
-  cardExpenses: []
-};
-var currentDbState = null;
-var mapProfileToSupabase = (p) => ({
-  id: 1,
-  nome: p.nome,
-  app_name: p.appName,
-  gemini_api_key: p.geminiApiKey || "",
-  deepseek_api_key: p.deepseekApiKey || "",
-  qwen_api_key: p.qwenApiKey || "",
-  telegram_bot_token: p.telegramBotToken || "",
-  telegram_chat_id: p.telegramChatId || "",
-  interesses: p.interesses || [],
-  objetivos: p.objetivos || [],
-  preferencias: p.preferencias || [],
-  contexto: p.contexto || ""
-});
-var mapProfileFromSupabase = (p) => ({
-  nome: p.nome || "Usu\xE1rio",
-  appName: p.app_name || "LifeOS AI",
-  geminiApiKey: p.gemini_api_key || "",
-  deepseekApiKey: p.deepseek_api_key || "",
-  qwenApiKey: p.qwen_api_key || "",
-  telegramBotToken: p.telegram_bot_token || "",
-  telegramChatId: p.telegram_chat_id || "",
-  interesses: Array.isArray(p.interesses) ? p.interesses : [],
-  objetivos: Array.isArray(p.objetivos) ? p.objetivos : [],
-  preferencias: Array.isArray(p.preferencias) ? p.preferencias : [],
-  contexto: p.contexto || ""
-});
+import fs from "fs";
+import path from "path";
 async function syncTable(supabase2, tableName, items) {
   try {
     const { data, error } = await supabase2.from(tableName).select("id");
@@ -238,7 +57,7 @@ async function syncAllToSupabase(state) {
   if (!isSupabaseConfigured2 || !supabase2) return;
   try {
     await Promise.all([
-      supabase2.from("user_profile").upsert(mapProfileToSupabase(state.userProfile)),
+      supabase2.from("user_profiles").upsert(mapProfileToSupabase(state.userProfile)),
       syncTable(supabase2, "personas", state.personas),
       syncTable(supabase2, "inbox", state.inbox),
       syncTable(supabase2, "expenses", state.expenses),
@@ -253,7 +72,18 @@ async function syncAllToSupabase(state) {
       syncTable(supabase2, "memories", state.memories),
       syncTable(supabase2, "salaries", state.salaries || []),
       syncTable(supabase2, "credit_cards", state.creditCards || []),
-      syncTable(supabase2, "card_expenses", state.cardExpenses || [])
+      syncTable(supabase2, "card_transactions", state.cardExpenses || []),
+      syncTable(supabase2, "decisions", state.decisions || []),
+      syncTable(supabase2, "energy_logs", state.energyLogs || []),
+      syncTable(supabase2, "briefings", state.briefings || []),
+      syncTable(supabase2, "simulator_runs", state.simulatorRuns || []),
+      syncTable(supabase2, "leakage_alerts", state.leakageAlerts || []),
+      syncTable(supabase2, "meditation_sessions", state.meditationSessions || []),
+      syncTable(supabase2, "daily_intentions", state.dailyIntentions || []),
+      syncTable(supabase2, "mood_logs", state.moodLogs || []),
+      syncTable(supabase2, "debts", state.debts || []),
+      syncTable(supabase2, "budgets", state.budgets || []),
+      syncTable(supabase2, "ai_extractions", state.aiExtractions || [])
     ]);
   } catch (err) {
     console.error("[Supabase Sync] Failed to sync database state:", err.message);
@@ -289,9 +119,22 @@ async function initializeDatabase() {
         memoriesRes,
         salariesRes,
         creditCardsRes,
-        cardExpensesRes
+        cardExpensesRes,
+        decisionsRes,
+        energyLogsRes,
+        briefingsRes,
+        simulatorRunsRes,
+        leakageAlertsRes,
+        meditationSessionsRes,
+        morningRoutineConfigRes,
+        dailyIntentionsRes,
+        moodLogsRes,
+        debtsRes,
+        debtPaymentsRes,
+        budgetsRes,
+        aiExtractionsRes
       ] = await Promise.all([
-        supabase2.from("user_profile").select("*").single(),
+        supabase2.from("user_profiles").select("*").limit(1).maybeSingle(),
         supabase2.from("personas").select("*"),
         supabase2.from("inbox").select("*").order("created_at", { ascending: false }),
         supabase2.from("expenses").select("*").order("data", { ascending: false }),
@@ -306,18 +149,28 @@ async function initializeDatabase() {
         supabase2.from("memories").select("*").order("created_at", { ascending: false }),
         supabase2.from("salaries").select("*").order("data_prevista", { ascending: false }),
         supabase2.from("credit_cards").select("*").order("nome", { ascending: true }),
-        supabase2.from("card_expenses").select("*").order("data", { ascending: false })
+        supabase2.from("card_transactions").select("*").order("created_at", { ascending: false }),
+        supabase2.from("decisions").select("*").order("created_at", { ascending: false }),
+        supabase2.from("energy_logs").select("*").order("created_at", { ascending: false }),
+        supabase2.from("briefings").select("*").order("date", { ascending: false }),
+        supabase2.from("simulator_runs").select("*").order("created_at", { ascending: false }),
+        supabase2.from("leakage_alerts").select("*").order("detected_at", { ascending: false }),
+        supabase2.from("meditation_sessions").select("*").order("completed_at", { ascending: false }),
+        supabase2.from("morning_routine_config").select("*").limit(1).maybeSingle(),
+        supabase2.from("daily_intentions").select("*").order("date", { ascending: false }),
+        supabase2.from("mood_logs").select("*").order("recorded_at", { ascending: false }),
+        supabase2.from("debts").select("*").order("created_at", { ascending: false }),
+        supabase2.from("debt_payments").select("*").order("created_at", { ascending: false }),
+        supabase2.from("budgets").select("*").order("created_at", { ascending: false }),
+        supabase2.from("ai_extractions").select("*").order("created_at", { ascending: false })
       ]);
-      if (profileRes.error && profileRes.error.code !== "PGRST116") {
-        throw new Error(`Profile load error: ${profileRes.error.message}`);
-      }
       let userProfile = DEFAULT_PROFILE;
       if (profileRes.data) {
         userProfile = mapProfileFromSupabase(profileRes.data);
       } else {
         console.log("[LifeOS AI] Profile table empty on Supabase. Seeding defaults...");
         const seeded = mapProfileToSupabase(DEFAULT_PROFILE);
-        await supabase2.from("user_profile").upsert(seeded);
+        await supabase2.from("user_profiles").upsert(seeded);
       }
       let personas = personasRes.data || [];
       if (personas.length === 0) {
@@ -341,10 +194,27 @@ async function initializeDatabase() {
         memories: memoriesRes.data || [],
         salaries: salariesRes.data || [],
         creditCards: creditCardsRes.data || [],
-        cardExpenses: cardExpensesRes.data || []
+        cardExpenses: cardExpensesRes.data || [],
+        decisions: decisionsRes.data || [],
+        energyLogs: energyLogsRes.data || [],
+        briefings: briefingsRes.data || [],
+        simulatorRuns: simulatorRunsRes.data || [],
+        leakageAlerts: leakageAlertsRes.data || [],
+        meditationSessions: meditationSessionsRes.data || [],
+        morningRoutineConfig: morningRoutineConfigRes.data || DEFAULT_STATE.morningRoutineConfig,
+        dailyIntentions: dailyIntentionsRes.data || [],
+        moodLogs: moodLogsRes.data || [],
+        debts: debtsRes.data || [],
+        debtPayments: debtPaymentsRes.data || [],
+        budgets: budgetsRes.data || [],
+        aiExtractions: aiExtractionsRes.data || [],
+        categories: DEFAULT_CATEGORIES,
+        accounts: DEFAULT_ACCOUNTS,
+        tags: DEFAULT_TAGS
       };
+      ensureStateIntegrity(currentDbState);
       try {
-        import_fs.default.writeFileSync(DB_FILE, JSON.stringify(currentDbState, null, 2), "utf-8");
+        fs.writeFileSync(DB_FILE, JSON.stringify(currentDbState, null, 2), "utf-8");
       } catch (_) {
       }
       console.log("[LifeOS AI] Database initialized from Supabase successfully.");
@@ -355,35 +225,42 @@ async function initializeDatabase() {
   }
   console.log("[LifeOS AI] Loading database from local JSON file...");
   try {
-    if (!import_fs.default.existsSync(DB_FILE)) {
-      currentDbState = DEFAULT_STATE;
-      import_fs.default.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_STATE, null, 2), "utf-8");
+    if (!fs.existsSync(DB_FILE)) {
+      currentDbState = ensureStateIntegrity({ ...DEFAULT_STATE });
+      fs.writeFileSync(DB_FILE, JSON.stringify(DEFAULT_STATE, null, 2), "utf-8");
     } else {
-      const data = import_fs.default.readFileSync(DB_FILE, "utf-8");
-      currentDbState = JSON.parse(data);
+      const data = fs.readFileSync(DB_FILE, "utf-8");
+      currentDbState = ensureStateIntegrity(JSON.parse(data));
     }
   } catch (error) {
     console.error("Falha ao ler banco de dados JSON:", error?.message || error);
-    currentDbState = DEFAULT_STATE;
+    currentDbState = ensureStateIntegrity({ ...DEFAULT_STATE });
   }
   return currentDbState;
 }
+function ensureStateIntegrity(state) {
+  if (!state.categories || state.categories.length === 0) state.categories = DEFAULT_CATEGORIES;
+  if (!state.accounts || state.accounts.length === 0) state.accounts = DEFAULT_ACCOUNTS;
+  if (!state.tags || state.tags.length === 0) state.tags = DEFAULT_TAGS;
+  if (!state.creditCards || state.creditCards.length === 0) state.creditCards = DEFAULT_CREDIT_CARDS;
+  return state;
+}
 function readDatabase() {
-  if (currentDbState) return currentDbState;
+  if (currentDbState) return ensureStateIntegrity(currentDbState);
   try {
-    if (!import_fs.default.existsSync(DB_FILE)) {
-      return DEFAULT_STATE;
+    if (!fs.existsSync(DB_FILE)) {
+      return ensureStateIntegrity({ ...DEFAULT_STATE });
     }
-    const data = import_fs.default.readFileSync(DB_FILE, "utf-8");
-    return JSON.parse(data);
+    const data = fs.readFileSync(DB_FILE, "utf-8");
+    return ensureStateIntegrity(JSON.parse(data));
   } catch (error) {
-    return DEFAULT_STATE;
+    return ensureStateIntegrity({ ...DEFAULT_STATE });
   }
 }
 function writeDatabase(state) {
   currentDbState = state;
   try {
-    import_fs.default.writeFileSync(DB_FILE, JSON.stringify(state, null, 2), "utf-8");
+    fs.writeFileSync(DB_FILE, JSON.stringify(state, null, 2), "utf-8");
   } catch (error) {
     console.error("Falha ao escrever banco de dados JSON:", error);
   }
@@ -440,10 +317,226 @@ function updateProfile(profile) {
   writeDatabase(db);
   return db.userProfile;
 }
+var DB_FILE, DEFAULT_PERSONAS, DEFAULT_PROFILE, DEFAULT_CATEGORIES, DEFAULT_ACCOUNTS, DEFAULT_TAGS, DEFAULT_CREDIT_CARDS, DEFAULT_STATE, currentDbState, mapProfileToSupabase, mapProfileFromSupabase;
+var init_db = __esm({
+  "server/db.ts"() {
+    DB_FILE = process.env.VERCEL ? path.join("/tmp", "db.json") : path.join(process.cwd(), "db.json");
+    DEFAULT_PERSONAS = [
+      {
+        id: "cfo",
+        nome: "CFO",
+        descricao: "Foco financeiro total. Analisa custos, ROI, margens e corte de despesas sup\xE9rfluas.",
+        prompt_base: `Voc\xEA \xE9 o CFO (Chief Financial Officer) pessoal do usu\xE1rio. Seu \xFAnico foco \xE9 sa\xFAde financeira, or\xE7amento, corte de despesas e gera\xE7\xE3o de receita.
+Sempre analise as finan\xE7as sob a \xF3tica de efici\xEAncia matem\xE1tica, retorno sobre investimento (ROI) e investimentos de longo prazo.
+Ao receber despesas, seja anal\xEDtico e, se necess\xE1rio, sutilmente rigoroso sobre desperd\xEDcios. Ao receber receitas, comemore focando em aloca\xE7\xE3o de ativos.
+Responda de forma direta, executiva e baseada em dados. Defenda margens e frugalidade inteligente.`,
+        ativa: true,
+        icon: "Briefcase"
+      },
+      {
+        id: "founder",
+        nome: "Founder",
+        descricao: "Foco em crescimento, valida\xE7\xE3o acelerada de ideias, MVP e capta\xE7\xE3o.",
+        prompt_base: `Voc\xEA \xE9 um co-fundador experiente e agressivo em rela\xE7\xE3o ao mercado. Seu foco \xE9 crescimento, velocidade de execu\xE7\xE3o, MVPs (Minimum Viable Products), atra\xE7\xE3o de usu\xE1rios e valida\xE7\xE3o \xE1gil de ideias de neg\xF3cios.
+Ajude a estruturar pensamentos em formato de hip\xF3teses test\xE1veis. Elimine o excesso de planejamento ("par\xE1lise por an\xE1lise") e empurre para a a\xE7\xE3o imediata.
+Responda de forma energ\xE9tica, focada em m\xE9tricas de tra\xE7\xE3o, crescimento r\xE1pido e pragmatismo empreendedor.`,
+        ativa: false,
+        icon: "Rocket"
+      },
+      {
+        id: "mentor",
+        nome: "Mentor",
+        descricao: "Foco em aprendizado cont\xEDnuo, leitura, desenvolvimento t\xE9cnico e intelectual.",
+        prompt_base: `Voc\xEA \xE9 um Mentor socr\xE1tico e profundamente s\xE1bio. Seu foco \xE9 desenvolvimento pessoal, aprendizado t\xE9cnico profundo, reten\xE7\xE3o de conhecimento e desenvolvimento de carreira s\xF3lida.
+Quando o usu\xE1rio salvar notas ou ideias de aprendizado, fa\xE7a conex\xF5es conceituais ricas, sugira novas fontes de estudo (como livros cl\xE1ssicos ou papers) e incentivo o racioc\xEDnio profundo.
+Fale com tom de voz emp\xE1tico, inspirador e estruturado.`,
+        ativa: false,
+        icon: "GraduationCap"
+      },
+      {
+        id: "executor",
+        nome: "Executor",
+        descricao: "Foco total em a\xE7\xE3o, velocidade extrema, listas de tarefas t\xE1ticas e pragmatismo.",
+        prompt_base: `Voc\xEA \xE9 a m\xE1quina de execu\xE7\xE3o pessoal do usu\xE1rio. Sem conversinhas, sem firulas. Seu foco \xE9 riscar tarefas da lista de uma forma implac\xE1vel e de alt\xEDssima velocidade.
+Divida qualquer plano complexo em 3 a\xE7\xF5es que podem ser feitas nos pr\xF3ximos 15 minutos. Cobrar efici\xEAncia, disciplina e clareza.
+Respostas ultra-curtas, focadas em pr\xF3ximos passos acion\xE1veis, bullet points, e cobran\xE7a disciplinada.`,
+        ativa: false,
+        icon: "CheckSquare"
+      },
+      {
+        id: "conselheiro",
+        nome: "Conselheiro",
+        descricao: "Foco em longo prazo, sabedoria de vida, equil\xEDbrio mental e intelig\xEAncia emocional.",
+        prompt_base: `Voc\xEA \xE9 um conselheiro s\xEAnior para decis\xF5es estrat\xE9gicas de vida. Seu foco \xE9 o longo prazo (5 a 10 anos), sabedoria existencial, sa\xFAde integrativa, paz de esp\xEDrito e intelig\xEAncia emocional.
+Evite pressas artificiais. Ajude o usu\xE1rio a ver o panorama geral ("macro view") e se as decis\xF5es est\xE3o alinhadas com seus valores \xE9ticos e pessoais mais profundos.
+Tom calmo, assertivo, ponderado e esclarecedor.`,
+        ativa: false,
+        icon: "Compass"
+      },
+      {
+        id: "analista",
+        nome: "Analista de Neg\xF3cios",
+        descricao: "Foco em mapeamento de oportunidades, intelig\xEAncia competitiva e automa\xE7\xE3o.",
+        prompt_base: `Voc\xEA \xE9 um brilhante Analista de Neg\xF3cios especializado em automa\xE7\xE3o, intelig\xEAncia competitiva e gaps de mercado.
+Sua fun\xE7\xE3o \xE9 analisar ideias brutas e encontrar mercados adjacentes, modelos de monetiza\xE7\xE3o eficientes e fluxos autom\xE1ticos de processos que possam gerar receita eficiente ou otimizar custos.
+Responda com an\xE1lises de mercado frias, an\xE1lise de concorr\xEAncia conceitual, e sugest\xF5es de ferramentas sem c\xF3digo (no-code) ou APIs \xFAteis.`,
+        ativa: false,
+        icon: "TrendingUp"
+      },
+      {
+        id: "cos",
+        nome: "Chief of Staff",
+        descricao: "Foco em prioriza\xE7\xE3o executiva, alinhamento de projetos e gerenciamento de energia.",
+        prompt_base: `Voc\xEA \xE9 o Chief of Staff (Chefe de Gabinete) do usu\xE1rio. Seu foco \xE9 garantir alinhamento t\xE1tico-estrat\xE9gico, gerenciar o tempo e energia dele, e aplicar filtros severos contra distra\xE7\xF5es.
+Ajude o usu\xE1rio a dizer "n\xE3o" para focar nas 3 maiores alavancas do dia e da semana. Certifique-se de que os h\xE1bitos fundamentais est\xE3o sendo seguidos.
+Tom elegante, calmo, altamente organizado, confi\xE1vel e coordenativo.`,
+        ativa: false,
+        icon: "LayoutGrid"
+      }
+    ];
+    DEFAULT_PROFILE = {
+      nome: "C\xE9sar",
+      appName: "Mobilis Executive",
+      geminiApiKey: process.env.GEMINI_API_KEY || "",
+      deepseekApiKey: process.env.DEEPSEEK_API_KEY || "",
+      qwenApiKey: process.env.QWEN_API_KEY || "",
+      telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || "",
+      telegramChatId: process.env.TELEGRAM_CHAT_ID || "",
+      interesses: [
+        "Intelig\xEAncia Artificial & LLMs",
+        "Desenvolvimento SaaS fullstack",
+        "Finan\xE7as Pessoais & Aloca\xE7\xE3o Inteligente",
+        "Automa\xE7\xF5es e Fluxos No-code",
+        "Biohacking & Produtividade"
+      ],
+      objetivos: [
+        "Lan\xE7ar o LifeOS AI no ProductHunt",
+        "Atingir faturamento recorrente USD 10k/m\xEAs com micro-SaaS",
+        "Manter consist\xEAncia semanal na academia",
+        "Construir um segundo c\xE9rebro inteligente de alta fidelidade"
+      ],
+      preferencias: [
+        "Tom de voz profissional, executivo e conciso",
+        "An\xE1lises baseadas em ROI e efici\xEAncia de tempo",
+        "Evitar clich\xEAs de autoajuda ou introdu\xE7\xF5es demoradas",
+        "Respostas estruturadas em Markdown"
+      ],
+      contexto: "Fundador t\xE9cnico trabalhando em m\xFAltiplos projetos de software e focando em maximizar a alavanca de cada hora gasta no dia.",
+      lifeScore: 82.5
+    };
+    DEFAULT_CATEGORIES = [
+      { id: "cat_1", nome: "Alimenta\xE7\xE3o", tipo: "despesa", cor: "#ef4444" },
+      { id: "cat_2", nome: "Transporte", tipo: "despesa", cor: "#f97316" },
+      { id: "cat_3", nome: "Moradia", tipo: "despesa", cor: "#3b82f6" },
+      { id: "cat_4", nome: "Sa\xFAde", tipo: "despesa", cor: "#10b981" },
+      { id: "cat_5", nome: "Lazer", tipo: "despesa", cor: "#a855f7" },
+      { id: "cat_6", nome: "Assinaturas", tipo: "despesa", cor: "#ec4899" },
+      { id: "cat_7", nome: "Sal\xE1rio", tipo: "receita", cor: "#10b981" },
+      { id: "cat_8", nome: "Consultoria", tipo: "receita", cor: "#6366f1" },
+      { id: "cat_9", nome: "Freelance", tipo: "receita", cor: "#14b8a6" },
+      { id: "cat_10", nome: "Investimentos", tipo: "receita", cor: "#eab308" }
+    ];
+    DEFAULT_ACCOUNTS = [
+      { id: "acc_1", nome: "Carteira", tipo: "carteira", saldo_inicial: 500, saldo_atual: 500, cor: "#f59e0b" },
+      { id: "acc_2", nome: "Santander C.C.", tipo: "corrente", saldo_inicial: 3e3, saldo_atual: 3e3, cor: "#ef4444" },
+      { id: "acc_3", nome: "NuConta", tipo: "corrente", saldo_inicial: 1e4, saldo_atual: 1e4, cor: "#8b5cf6" }
+    ];
+    DEFAULT_TAGS = [
+      { id: "tag_1", nome: "Essencial", cor: "#64748b" },
+      { id: "tag_2", nome: "Lazer", cor: "#ec4899" },
+      { id: "tag_3", nome: "Trabalho", cor: "#3b82f6" },
+      { id: "tag_4", nome: "Recorrente", cor: "#10b981" }
+    ];
+    DEFAULT_CREDIT_CARDS = [
+      { id: "card_1", nome: "Nubank Mastercard", limite: 5e3, dia_fechamento: 28, dia_vencimento: 5, cor: "#8b5cf6" },
+      { id: "card_2", nome: "XP Visa Infinite", limite: 8e3, dia_fechamento: 15, dia_vencimento: 22, cor: "#1e293b" }
+    ];
+    DEFAULT_STATE = {
+      inbox: [],
+      expenses: [],
+      income: [],
+      tasks: [],
+      reminders: [],
+      goals: [],
+      habits: [],
+      projects: [],
+      notes: [],
+      ideas: [],
+      memories: [],
+      personas: DEFAULT_PERSONAS,
+      userProfile: DEFAULT_PROFILE,
+      salaries: [],
+      creditCards: DEFAULT_CREDIT_CARDS,
+      cardExpenses: [],
+      decisions: [],
+      energyLogs: [],
+      briefings: [],
+      simulatorRuns: [],
+      leakageAlerts: [],
+      meditationSessions: [],
+      morningRoutineConfig: {
+        id: "mrc_1",
+        wake_up_time: "07:00:00",
+        meditation_enabled: true,
+        meditation_duration: 600,
+        briefing_enabled: true,
+        gratitude_prompt: true,
+        intention_setting: true,
+        timezone: "America/Sao_Paulo"
+      },
+      dailyIntentions: [],
+      moodLogs: [],
+      debts: [],
+      debtPayments: [],
+      budgets: [],
+      aiExtractions: [],
+      categories: DEFAULT_CATEGORIES,
+      accounts: DEFAULT_ACCOUNTS,
+      tags: DEFAULT_TAGS
+    };
+    currentDbState = null;
+    mapProfileToSupabase = (p) => ({
+      id: "00000000-0000-0000-0000-000000000000",
+      // default auth uuid placeholder
+      nome: p.nome,
+      email: "cesar@lifeos.ai",
+      telefone: p.telegramChatId || "",
+      status: "active",
+      life_score: p.lifeScore || 0,
+      config: {
+        appName: p.appName,
+        gemini_api_key: p.geminiApiKey || "",
+        deepseek_api_key: p.deepseekApiKey || "",
+        qwen_api_key: p.qwenApiKey || "",
+        telegram_bot_token: p.telegramBotToken || "",
+        telegram_chat_id: p.telegramChatId || "",
+        interesses: p.interesses || [],
+        objetivos: p.objetivos || [],
+        preferencias: p.preferencias || [],
+        contexto: p.contexto || ""
+      }
+    });
+    mapProfileFromSupabase = (p) => {
+      const cfg = p.config || {};
+      return {
+        nome: p.nome || "Usu\xE1rio",
+        appName: cfg.appName || "Mobilis Executive",
+        geminiApiKey: cfg.gemini_api_key || "",
+        deepseekApiKey: cfg.deepseek_api_key || "",
+        qwenApiKey: cfg.qwen_api_key || "",
+        telegramBotToken: cfg.telegram_bot_token || "",
+        telegramChatId: cfg.telegram_chat_id || p.telefone || "",
+        interesses: Array.isArray(cfg.interesses) ? cfg.interesses : [],
+        objetivos: Array.isArray(cfg.objetivos) ? cfg.objetivos : [],
+        preferencias: Array.isArray(cfg.preferencias) ? cfg.preferencias : [],
+        contexto: cfg.contexto || "",
+        lifeScore: p.life_score || 0
+      };
+    };
+  }
+});
 
 // services/ai/provider.ts
-var DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
-var DEEPSEEK_CHAT_MODEL = "deepseek-chat";
 function getDeepSeekKey() {
   try {
     const profile = getProfile();
@@ -606,152 +699,14 @@ function getProvider() {
   };
   return provider;
 }
-
-// services/ai/router.ts
-var ROUTER_SYSTEM_PROMPT = `Voc\xEA \xE9 o AI Router do LifeOS \u2014 um motor de classifica\xE7\xE3o de inten\xE7\xE3o de alt\xEDssima precis\xE3o em portugu\xEAs brasileiro.
-
-Sua \xDANICA fun\xE7\xE3o \xE9 analisar o texto do usu\xE1rio e retornar um JSON com:
-- "intent": categoria da mensagem
-- "extracted_data": dados estruturados extra\xEDdos
-- "explanation": 1 frase curta explicando a classifica\xE7\xE3o
-- "confidence": n\xFAmero entre 0 e 1
-
-CATEGORIAS DE INTENT:
-- "expense" \u2192 despesas, gastos, compras, pagamentos
-- "income"  \u2192 receitas, ganhos, sal\xE1rio, pix recebido
-- "task"    \u2192 tarefas, afazeres, to-dos, a\xE7\xF5es futuras
-- "reminder" \u2192 lembretes com data/hora espec\xEDfica
-- "goal"    \u2192 metas com progresso num\xE9rico
-- "habit"   \u2192 check-in em h\xE1bito ou rotina di\xE1ria
-- "project" \u2192 cria\xE7\xE3o de novo projeto
-- "note"    \u2192 anota\xE7\xF5es, aprendizados, di\xE1rios
-- "idea"    \u2192 ideias criativas para avaliar depois
-- "memory"  \u2192 fatos importantes de vida pessoal/profissional
-- "chat"    \u2192 conversa, pergunta direta ao assistente
-
-REGRAS DE EXTRA\xC7\xC3O:
-1. expense/income \u2192 "valor" (n\xFAmero), "categoria" (1 palavra), "descricao", "data" (YYYY-MM-DD, hoje se omitida)
-2. task \u2192 "titulo", "prioridade" (high/medium/low), "prazo" (YYYY-MM-DD, amanh\xE3 se omitido), "status": "pending"
-3. reminder \u2192 "titulo", "data_hora" (ISO string), "status": "active"
-4. goal \u2192 "titulo", "meta" (n\xFAmero alvo), "progresso" (0), "prazo" (YYYY-MM-DD)
-5. habit \u2192 "nome", "frequencia" (diaria/semanal)
-6. note/memory \u2192 "conteudo" (texto completo), "tags" (array de palavras-chave)
-7. idea \u2192 "titulo" (nome curto), "conteudo" (detalhes), "score" (1-10 potencial)
-
-Retorne APENAS o JSON, sem markdown, sem explica\xE7\xE3o fora do JSON.`;
-async function routeMessage(text) {
-  const today2 = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-  const tomorrow = new Date(Date.now() + 864e5).toISOString().split("T")[0];
-  const userMessage = `Data de hoje: ${today2}. Texto para classificar: "${text}"`;
-  try {
-    const provider = getProvider();
-    if (!provider.isAvailable()) {
-      console.warn("[Router] Provedor IA indispon\xEDvel \u2014 usando fallback heur\xEDstico.");
-      return heuristicFallback(text, today2);
-    }
-    const result = await provider.chatJSON(ROUTER_SYSTEM_PROMPT, userMessage);
-    return {
-      intent: result.intent || "note",
-      extracted_data: result.extracted_data || {},
-      explanation: result.explanation || "Processado pelo AI Router.",
-      confidence: Math.min(1, Math.max(0, result.confidence ?? 0.8))
-    };
-  } catch (error) {
-    console.error("[Router] Falha na classifica\xE7\xE3o IA:", error.message);
-    return heuristicFallback(text, today2);
+var DEEPSEEK_BASE_URL, DEEPSEEK_CHAT_MODEL;
+var init_provider = __esm({
+  "services/ai/provider.ts"() {
+    init_db();
+    DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";
+    DEEPSEEK_CHAT_MODEL = "deepseek-chat";
   }
-}
-function heuristicFallback(text, today2) {
-  const lower = text.toLowerCase();
-  const tomorrow = new Date(Date.now() + 864e5).toISOString().split("T")[0];
-  if (lower.match(/gastei|paguei|comprei|compra|custou|r\$|\bpix\b saiu|débito|debitou/)) {
-    const numMatch = text.match(/(\d[\d.,]*)/);
-    const valor = numMatch ? parseFloat(numMatch[0].replace(",", ".")) : 0;
-    return {
-      intent: "expense",
-      extracted_data: {
-        valor,
-        categoria: lower.includes("uber") || lower.includes("taxi") ? "Transporte" : lower.includes("comida") || lower.includes("restaurante") || lower.includes("lanche") ? "Alimenta\xE7\xE3o" : lower.includes("mercado") || lower.includes("supermercado") ? "Mercado" : "Geral",
-        descricao: text.replace(/r\$\s*[\d,.]+/gi, "").trim(),
-        data: today2
-      },
-      explanation: "Padr\xE3o de despesa detectado (fallback).",
-      confidence: 0.7
-    };
-  }
-  if (lower.match(/recebi|ganhei|faturei|salário|pix recebido|depositou|faturamento/)) {
-    const numMatch = text.match(/(\d[\d.,]*)/);
-    return {
-      intent: "income",
-      extracted_data: {
-        valor: numMatch ? parseFloat(numMatch[0].replace(",", ".")) : 0,
-        categoria: lower.includes("sal\xE1rio") ? "Sal\xE1rio" : lower.includes("consultor") ? "Consultoria" : "Receita",
-        descricao: text.trim(),
-        data: today2
-      },
-      explanation: "Padr\xE3o de receita detectado (fallback).",
-      confidence: 0.7
-    };
-  }
-  if (lower.match(/preciso|tenho que|devo|fazer|criar|desenvolver|terminar|entregar|prazo/)) {
-    return {
-      intent: "task",
-      extracted_data: {
-        titulo: text.replace(/preciso|tenho que|devo|fazer|criar/gi, "").trim() || "Nova Tarefa",
-        prioridade: lower.includes("urgente") || lower.includes("importante") ? "high" : "medium",
-        prazo: tomorrow,
-        status: "pending"
-      },
-      explanation: "Padr\xE3o de tarefa detectado (fallback).",
-      confidence: 0.65
-    };
-  }
-  if (lower.match(/lembrar|lembrete|me lembra|agendar|reunião às|call às|às \d+h/)) {
-    return {
-      intent: "reminder",
-      extracted_data: {
-        titulo: text.replace(/lembrar|me lembra de|lembrete/gi, "").trim(),
-        data_hora: new Date(Date.now() + 36e5).toISOString(),
-        status: "active"
-      },
-      explanation: "Padr\xE3o de lembrete detectado (fallback).",
-      confidence: 0.65
-    };
-  }
-  if (lower.match(/ideia|e se|e se eu|insight|seria incrível|pensei em|lampejo/)) {
-    return {
-      intent: "idea",
-      extracted_data: { titulo: text.slice(0, 60).trim(), conteudo: text, score: 7 },
-      explanation: "Padr\xE3o de ideia detectado (fallback).",
-      confidence: 0.6
-    };
-  }
-  if (lower.match(/meditei|treinei|academia|corri|li|estudei|fiz|completei|check/)) {
-    return {
-      intent: "habit",
-      extracted_data: {
-        nome: text.replace(/meditei|treinei|fiz|completei/gi, "").trim() || "H\xE1bito di\xE1rio",
-        frequencia: "diaria"
-      },
-      explanation: "Padr\xE3o de h\xE1bito detectado (fallback).",
-      confidence: 0.6
-    };
-  }
-  if (lower.match(/^\/|quem|como|onde|o que|por que|qual|ajuda|oi|olá|bom dia|boa tarde/)) {
-    return {
-      intent: "chat",
-      extracted_data: { conteudo: text },
-      explanation: "Mensagem conversacional (fallback).",
-      confidence: 0.6
-    };
-  }
-  return {
-    intent: "note",
-    extracted_data: { conteudo: text, tags: [] },
-    explanation: "Classificado como anota\xE7\xE3o por falta de padr\xE3o espec\xEDfico (fallback).",
-    confidence: 0.4
-  };
-}
+});
 
 // services/ai/memory.ts
 async function embed(text) {
@@ -819,14 +774,48 @@ async function semanticSearch(query) {
   }
   return results.sort((a, b) => b.score - a.score);
 }
-
-// services/ai/index.ts
-var getAI = getProvider;
+var init_memory = __esm({
+  "services/ai/memory.ts"() {
+    init_db();
+    init_provider();
+  }
+});
 
 // services/engine/action.ts
-var uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-var today = () => (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-var now = () => (/* @__PURE__ */ new Date()).toISOString();
+var action_exports = {};
+__export(action_exports, {
+  checkHabit: () => checkHabit,
+  completeTask: () => completeTask,
+  createAiExtraction: () => createAiExtraction,
+  createBriefing: () => createBriefing,
+  createBudget: () => createBudget,
+  createDailyIntention: () => createDailyIntention,
+  createDebt: () => createDebt,
+  createDebtPayment: () => createDebtPayment,
+  createDecision: () => createDecision,
+  createEnergyLog: () => createEnergyLog,
+  createExpense: () => createExpense,
+  createGoal: () => createGoal,
+  createHabit: () => createHabit,
+  createIdea: () => createIdea,
+  createIncome: () => createIncome,
+  createLeakageAlert: () => createLeakageAlert,
+  createMeditationSession: () => createMeditationSession,
+  createMemory: () => createMemory,
+  createMoodLog: () => createMoodLog,
+  createNote: () => createNote,
+  createProject: () => createProject,
+  createReminder: () => createReminder,
+  createSimulatorRun: () => createSimulatorRun,
+  createTask: () => createTask,
+  deleteEntity: () => deleteEntity,
+  executeFromIntent: () => executeFromIntent,
+  updateAiExtractionStatus: () => updateAiExtractionStatus,
+  updateDecision: () => updateDecision,
+  updateGoalProgress: () => updateGoalProgress,
+  updateProject: () => updateProject,
+  updateTask: () => updateTask
+});
 function addToInbox(type, raw_content, source, extracted_id) {
   const item = {
     id: uid("inbox"),
@@ -847,10 +836,22 @@ async function createExpense(data, source = "dashboard") {
       id: uid("exp"),
       valor: Number(data.valor),
       categoria: data.categoria || "Geral",
+      categoria_id: data.categoria_id,
+      conta_id: data.conta_id,
+      cartao_id: data.cartao_id,
       descricao: data.descricao || "",
-      data: data.data || today()
+      data: data.data || today(),
+      tag_ids: data.tag_ids || [],
+      quitada: data.quitada !== void 0 ? data.quitada : true
     };
     db.expenses.unshift(entity);
+    if (entity.conta_id) {
+      db.accounts = db.accounts || [];
+      const acc = db.accounts.find((a) => a.id === entity.conta_id);
+      if (acc) {
+        acc.saldo_atual = Number(acc.saldo_atual) - entity.valor;
+      }
+    }
     writeDatabase(db);
     const inboxId = addToInbox(
       "expense",
@@ -870,10 +871,21 @@ async function createIncome(data, source = "dashboard") {
       id: uid("inc"),
       valor: Number(data.valor),
       categoria: data.categoria || "Receita",
+      categoria_id: data.categoria_id,
+      conta_id: data.conta_id,
       descricao: data.descricao || "",
-      data: data.data || today()
+      data: data.data || today(),
+      tag_ids: data.tag_ids || [],
+      quitada: data.quitada !== void 0 ? data.quitada : true
     };
     db.income.unshift(entity);
+    if (entity.conta_id) {
+      db.accounts = db.accounts || [];
+      const acc = db.accounts.find((a) => a.id === entity.conta_id);
+      if (acc) {
+        acc.saldo_atual = Number(acc.saldo_atual) + entity.valor;
+      }
+    }
     writeDatabase(db);
     const inboxId = addToInbox(
       "income",
@@ -1045,6 +1057,293 @@ async function createMemory(data, source = "dashboard") {
     return { success: false, error: e.message };
   }
 }
+async function createDecision(data, source = "dashboard") {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("dec"),
+      title: data.title,
+      context: data.context || "",
+      expected_outcome: data.expected_outcome,
+      actual_outcome: "",
+      review_at: data.review_at || new Date(Date.now() + 30 * 864e5).toISOString().split("T")[0],
+      reviewed: false,
+      status: "ACTIVE",
+      created_at: now()
+    };
+    db.decisions = db.decisions || [];
+    db.decisions.unshift(entity);
+    writeDatabase(db);
+    addToInbox("decision", `Decis\xE3o Estrat\xE9gica: ${entity.title}`, source, entity.id);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function updateDecision(id, data) {
+  try {
+    const db = readDatabase();
+    const idx = db.decisions.findIndex((d) => d.id === id);
+    if (idx === -1) return { success: false, error: "Decis\xE3o n\xE3o encontrada" };
+    db.decisions[idx] = { ...db.decisions[idx], ...data };
+    writeDatabase(db);
+    return { success: true, data: db.decisions[idx] };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createEnergyLog(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("nrg"),
+      energy_level: Number(data.energy_level),
+      task_id: data.task_id || void 0,
+      context: data.context || {},
+      created_at: now()
+    };
+    db.energyLogs = db.energyLogs || [];
+    db.energyLogs.unshift(entity);
+    if (db.userProfile) {
+      db.userProfile.lifeScore = Math.min(100, Math.max(0, (db.userProfile.lifeScore || 80) + (data.energy_level - 5) * 0.4));
+    }
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createBriefing(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("brf"),
+      content: data.content,
+      date: data.date || today(),
+      generated_at: now()
+    };
+    db.briefings = db.briefings || [];
+    db.briefings = db.briefings.filter((b) => b.date !== entity.date);
+    db.briefings.unshift(entity);
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createSimulatorRun(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("sim"),
+      params: data.params,
+      result: data.result,
+      created_at: now()
+    };
+    db.simulatorRuns = db.simulatorRuns || [];
+    db.simulatorRuns.unshift(entity);
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createLeakageAlert(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("lka"),
+      category: data.category,
+      detected_change: Number(data.detected_change),
+      description: data.description,
+      dismissed: false,
+      detected_at: now()
+    };
+    db.leakageAlerts = db.leakageAlerts || [];
+    db.leakageAlerts.unshift(entity);
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createMeditationSession(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("med"),
+      duration_seconds: Number(data.duration_seconds),
+      type: data.type,
+      mood_before: Number(data.mood_before),
+      mood_after: Number(data.mood_after),
+      notes: data.notes || "",
+      completed_at: now()
+    };
+    db.meditationSessions = db.meditationSessions || [];
+    db.meditationSessions.unshift(entity);
+    if (db.userProfile) {
+      db.userProfile.lifeScore = Math.min(100, (db.userProfile.lifeScore || 80) + 1.8);
+    }
+    writeDatabase(db);
+    addToInbox("meditation", `Medita\xE7\xE3o conclu\xEDda: ${entity.type} de ${Math.floor(entity.duration_seconds / 60)}min`, "dashboard", entity.id);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createDailyIntention(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("int"),
+      date: today(),
+      intention_text: data.intention_text,
+      focus_area: data.focus_area,
+      completed: false
+    };
+    db.dailyIntentions = db.dailyIntentions || [];
+    db.dailyIntentions = db.dailyIntentions.filter((i) => i.date !== entity.date);
+    db.dailyIntentions.unshift(entity);
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createMoodLog(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("mld"),
+      mood_score: Number(data.mood_score),
+      energy_level: Number(data.energy_level),
+      context: data.context,
+      recorded_at: now()
+    };
+    db.moodLogs = db.moodLogs || [];
+    db.moodLogs.unshift(entity);
+    if (db.userProfile) {
+      db.userProfile.lifeScore = Math.min(100, Math.max(0, (db.userProfile.lifeScore || 80) + (data.mood_score - 5) * 0.2));
+    }
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createDebt(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("dbt"),
+      descricao: data.descricao,
+      credor: data.credor,
+      valor_original: Number(data.valor_original),
+      saldo_atual: Number(data.valor_original),
+      vencimento: data.vencimento,
+      status: "ABERTA"
+    };
+    db.debts = db.debts || [];
+    db.debts.unshift(entity);
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createDebtPayment(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("dpt"),
+      debt_id: data.debt_id,
+      valor_pago: Number(data.valor_pago),
+      data_pagamento: data.data_pagamento || today()
+    };
+    db.debtPayments = db.debtPayments || [];
+    db.debtPayments.unshift(entity);
+    db.debts = db.debts || [];
+    const debtIdx = db.debts.findIndex((d) => d.id === data.debt_id);
+    if (debtIdx !== -1) {
+      const debt = db.debts[debtIdx];
+      const totalPaid = db.debtPayments.filter((p) => p.debt_id === data.debt_id).reduce((sum, p) => sum + p.valor_pago, 0);
+      debt.saldo_atual = Math.max(0, debt.valor_original - totalPaid);
+      if (debt.saldo_atual <= 0) {
+        debt.status = "QUITADA";
+      } else if (debt.saldo_atual < debt.valor_original) {
+        debt.status = "PARCIAL";
+      } else {
+        debt.status = "ABERTA";
+      }
+    }
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createBudget(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("bdg"),
+      category_id: data.category_id,
+      valor_planejado: Number(data.valor_planejado),
+      valor_realizado: 0,
+      mes: Number(data.mes),
+      ano: Number(data.ano)
+    };
+    db.budgets = db.budgets || [];
+    db.budgets = db.budgets.filter((b) => !(b.category_id === entity.category_id && b.mes === entity.mes && b.ano === entity.ano));
+    db.budgets.unshift(entity);
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function createAiExtraction(data) {
+  try {
+    const db = readDatabase();
+    const entity = {
+      id: uid("ext"),
+      source: data.source,
+      confidence: Number(data.confidence),
+      extracted_json: data.extracted_json,
+      status: "PENDING",
+      created_at: now()
+    };
+    db.aiExtractions = db.aiExtractions || [];
+    db.aiExtractions.unshift(entity);
+    writeDatabase(db);
+    return { success: true, data: entity };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function updateAiExtractionStatus(id, status, extractedJson) {
+  try {
+    const db = readDatabase();
+    const idx = db.aiExtractions.findIndex((e) => e.id === id);
+    if (idx === -1) return { success: false, error: "Extra\xE7\xE3o n\xE3o encontrada" };
+    const extraction = db.aiExtractions[idx];
+    extraction.status = status;
+    extraction.processed_at = now();
+    if (extractedJson) {
+      extraction.extracted_json = extractedJson;
+    }
+    if (status === "APPROVED") {
+      const { intent, data } = extraction.extracted_json;
+      if (intent && data) {
+        await executeFromIntent(intent, data, extraction.source);
+      }
+    }
+    writeDatabase(db);
+    return { success: true, data: extraction };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
 async function updateTask(id, data) {
   try {
     const db = readDatabase();
@@ -1059,6 +1358,18 @@ async function updateTask(id, data) {
 }
 async function completeTask(id) {
   return updateTask(id, { status: "completed" });
+}
+async function updateGoalProgress(id, progresso) {
+  try {
+    const db = readDatabase();
+    const idx = db.goals.findIndex((g) => g.id === id);
+    if (idx === -1) return { success: false, error: "Meta n\xE3o encontrada" };
+    db.goals[idx].progresso = Math.min(db.goals[idx].meta, Math.max(0, progresso));
+    writeDatabase(db);
+    return { success: true, data: db.goals[idx] };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
 }
 async function checkHabit(id) {
   try {
@@ -1092,6 +1403,25 @@ async function deleteEntity(collection, id) {
   try {
     const db = readDatabase();
     if (!Array.isArray(db[collection])) return { success: false, error: "Cole\xE7\xE3o inv\xE1lida" };
+    if (collection === "expenses") {
+      const expense = db.expenses.find((e) => e.id === id);
+      if (expense && expense.conta_id) {
+        db.accounts = db.accounts || [];
+        const acc = db.accounts.find((a) => a.id === expense.conta_id);
+        if (acc) {
+          acc.saldo_atual = Number(acc.saldo_atual) + Number(expense.valor);
+        }
+      }
+    } else if (collection === "income") {
+      const income = db.income.find((i) => i.id === id);
+      if (income && income.conta_id) {
+        db.accounts = db.accounts || [];
+        const acc = db.accounts.find((a) => a.id === income.conta_id);
+        if (acc) {
+          acc.saldo_atual = Number(acc.saldo_atual) - Number(income.valor);
+        }
+      }
+    }
     const before = db[collection].length;
     db[collection] = db[collection].filter((item) => item.id !== id);
     if (db[collection].length === before) return { success: false, error: "Item n\xE3o encontrado" };
@@ -1123,10 +1453,222 @@ async function executeFromIntent(intent, extractedData, source = "telegram") {
       return createIdea(extractedData, source);
     case "memory":
       return createMemory(extractedData, source);
+    case "decision":
+      return createDecision(extractedData, source);
+    case "meditation":
+      return createMeditationSession(extractedData);
+    case "mood":
+      return createMoodLog(extractedData);
+    case "debt":
+      return createDebt(extractedData);
+    case "debt_payment":
+      return createDebtPayment(extractedData);
+    case "budget":
+      return createBudget(extractedData);
     default:
       return { success: true, data: null };
   }
 }
+var uid, today, now;
+var init_action = __esm({
+  "services/engine/action.ts"() {
+    init_db();
+    init_memory();
+    uid = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    today = () => (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+    now = () => (/* @__PURE__ */ new Date()).toISOString();
+  }
+});
+
+// server/server.ts
+init_db();
+import express from "express";
+import path2 from "path";
+import dotenv2 from "dotenv";
+import fs2 from "fs";
+
+// services/ai/index.ts
+init_provider();
+
+// services/ai/router.ts
+init_provider();
+var ROUTER_SYSTEM_PROMPT = `Voc\xEA \xE9 o AI Router do LifeOS \u2014 um motor de classifica\xE7\xE3o de inten\xE7\xE3o de alt\xEDssima precis\xE3o em portugu\xEAs brasileiro.
+
+Sua \xDANICA fun\xE7\xE3o \xE9 analisar o texto do usu\xE1rio e retornar um JSON com:
+- "intent": categoria da mensagem
+- "extracted_data": dados estruturados extra\xEDdos
+- "explanation": 1 frase curta explicando a classifica\xE7\xE3o
+- "confidence": n\xFAmero entre 0 e 1
+
+CATEGORIAS DE INTENT:
+- "expense" \u2192 despesas, gastos tradicionais, compras no d\xE9bito/dinheiro
+- "income"  \u2192 receitas, ganhos, sal\xE1rio, pix recebido
+- "task"    \u2192 tarefas, afazeres, to-dos, a\xE7\xF5es futuras
+- "reminder" \u2192 lembretes com data/hora espec\xEDfica
+- "goal"    \u2192 metas com progresso num\xE9rico
+- "habit"   \u2192 check-in em h\xE1bito ou rotina di\xE1ria
+- "project" \u2192 cria\xE7\xE3o de novo projeto
+- "note"    \u2192 anota\xE7\xF5es, aprendizados, di\xE1rios
+- "idea"    \u2192 ideias criativas para avaliar depois
+- "memory"  \u2192 fatos importantes de vida pessoal/profissional
+- "decision" \u2192 decis\xF5es importantes e o que espera dela
+- "meditation" \u2192 registrar uma sess\xE3o de medita\xE7\xE3o, respira\xE7\xE3o ou mindfulness
+- "mood" \u2192 registrar humor (1 a 10) e energia f\xEDsica/mental (1 a 10)
+- "debt" \u2192 registrar uma d\xEDvida com credor e valor original
+- "debt_payment" \u2192 pagar/quitar uma d\xEDvida
+- "budget" \u2192 definir teto or\xE7ament\xE1rio mensal por categoria
+- "chat"    \u2192 conversa, pergunta direta ao assistente
+
+REGRAS DE EXTRA\xC7\xC3O:
+1. expense/income \u2192 "valor" (n\xFAmero), "categoria" (1 palavra), "descricao", "data" (YYYY-MM-DD, hoje se omitida)
+2. task \u2192 "titulo", "prioridade" (high/medium/low), "prazo" (YYYY-MM-DD, amanh\xE3 se omitido), "status": "pending"
+3. reminder \u2192 "titulo", "data_hora" (ISO string), "status": "active"
+4. goal \u2192 "titulo", "meta" (n\xFAmero alvo), "progresso" (0), "prazo" (YYYY-MM-DD)
+5. habit \u2192 "nome", "frequencia" (diaria/semanal)
+6. note/memory \u2192 "conteudo" (texto completo), "tags" (array de palavras-chave)
+7. idea \u2192 "titulo" (nome curto), "conteudo" (detalhes), "score" (1-10 potencial)
+8. decision \u2192 "title", "context", "expected_outcome", "review_at" (YYYY-MM-DD)
+9. meditation \u2192 "duration_seconds" (n\xFAmero), "type" (breathing/guided/gratitude/visualization/body_scan), "mood_before" (n\xFAmero), "mood_after" (n\xFAmero)
+10. mood \u2192 "mood_score" (n\xFAmero), "energy_level" (n\xFAmero), "context" (texto)
+11. debt \u2192 "descricao", "credor", "valor_original" (n\xFAmero), "vencimento" (YYYY-MM-DD)
+12. debt_payment \u2192 "debt_id", "valor_pago" (n\xFAmero)
+13. budget \u2192 "category_id", "valor_planejado" (n\xFAmero), "mes" (n\xFAmero), "ano" (n\xFAmero)
+
+Retorne APENAS o JSON, sem markdown, sem explica\xE7\xE3o fora do JSON.`;
+async function routeMessage(text) {
+  const today2 = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
+  const tomorrow = new Date(Date.now() + 864e5).toISOString().split("T")[0];
+  const userMessage = `Data de hoje: ${today2}. Texto para classificar: "${text}"`;
+  try {
+    const provider = getProvider();
+    if (!provider.isAvailable()) {
+      console.warn("[Router] Provedor IA indispon\xEDvel \u2014 usando fallback heur\xEDstico.");
+      return heuristicFallback(text, today2);
+    }
+    const result = await provider.chatJSON(ROUTER_SYSTEM_PROMPT, userMessage);
+    return {
+      intent: result.intent || "note",
+      extracted_data: result.extracted_data || {},
+      explanation: result.explanation || "Processado pelo AI Router.",
+      confidence: Math.min(1, Math.max(0, result.confidence ?? 0.8))
+    };
+  } catch (error) {
+    console.error("[Router] Falha na classifica\xE7\xE3o IA:", error.message);
+    return heuristicFallback(text, today2);
+  }
+}
+function heuristicFallback(text, today2) {
+  const lower = text.toLowerCase();
+  const tomorrow = new Date(Date.now() + 864e5).toISOString().split("T")[0];
+  if (lower.match(/gastei|paguei|comprei|compra|custou|r\$|\bpix\b saiu|débito|debitou/)) {
+    const numMatch = text.match(/(\d[\d.,]*)/);
+    const valor = numMatch ? parseFloat(numMatch[0].replace(",", ".")) : 0;
+    return {
+      intent: "expense",
+      extracted_data: {
+        valor,
+        categoria: lower.includes("uber") || lower.includes("taxi") ? "Transporte" : lower.includes("comida") || lower.includes("restaurante") || lower.includes("lanche") ? "Alimenta\xE7\xE3o" : lower.includes("mercado") || lower.includes("supermercado") ? "Mercado" : "Geral",
+        descricao: text.replace(/r\$\s*[\d,.]+/gi, "").trim(),
+        data: today2
+      },
+      explanation: "Padr\xE3o de despesa detectado (fallback).",
+      confidence: 0.7
+    };
+  }
+  if (lower.match(/recebi|ganhei|faturei|salário|pix recebido|depositou|faturamento/)) {
+    const numMatch = text.match(/(\d[\d.,]*)/);
+    return {
+      intent: "income",
+      extracted_data: {
+        valor: numMatch ? parseFloat(numMatch[0].replace(",", ".")) : 0,
+        categoria: lower.includes("sal\xE1rio") ? "Sal\xE1rio" : lower.includes("consultor") ? "Consultoria" : "Receita",
+        descricao: text.trim(),
+        data: today2
+      },
+      explanation: "Padr\xE3o de receita detectado (fallback).",
+      confidence: 0.7
+    };
+  }
+  if (lower.match(/preciso|tenho que|devo|fazer|criar|desenvolver|terminar|entregar|prazo/)) {
+    return {
+      intent: "task",
+      extracted_data: {
+        titulo: text.replace(/preciso|tenho que|devo|fazer|criar/gi, "").trim() || "Nova Tarefa",
+        prioridade: lower.includes("urgente") || lower.includes("importante") ? "high" : "medium",
+        prazo: tomorrow,
+        status: "pending"
+      },
+      explanation: "Padr\xE3o de tarefa detectado (fallback).",
+      confidence: 0.65
+    };
+  }
+  if (lower.match(/lembrar|lembrete|me lembra|agendar|reunião às|call às|às \d+h/)) {
+    return {
+      intent: "reminder",
+      extracted_data: {
+        titulo: text.replace(/lembrar|me lembra de|lembrete/gi, "").trim(),
+        data_hora: new Date(Date.now() + 36e5).toISOString(),
+        status: "active"
+      },
+      explanation: "Padr\xE3o de lembrete detectado (fallback).",
+      confidence: 0.65
+    };
+  }
+  if (lower.match(/ideia|e se|e se eu|insight|seria incrível|pensei em|lampejo/)) {
+    return {
+      intent: "idea",
+      extracted_data: { titulo: text.slice(0, 60).trim(), conteudo: text, score: 7 },
+      explanation: "Padr\xE3o de ideia detectado (fallback).",
+      confidence: 0.6
+    };
+  }
+  if (lower.match(/meditei|treinei|academia|corri|li|estudei|fiz|completei|check/)) {
+    return {
+      intent: "habit",
+      extracted_data: {
+        nome: text.replace(/meditei|treinei|fiz|completei/gi, "").trim() || "H\xE1bito di\xE1rio",
+        frequencia: "diaria"
+      },
+      explanation: "Padr\xE3o de h\xE1bito detectado (fallback).",
+      confidence: 0.6
+    };
+  }
+  if (lower.match(/^\/|quem|como|onde|o que|por que|qual|ajuda|oi|olá|bom dia|boa tarde/)) {
+    return {
+      intent: "chat",
+      extracted_data: { conteudo: text },
+      explanation: "Mensagem conversacional (fallback).",
+      confidence: 0.6
+    };
+  }
+  return {
+    intent: "note",
+    extracted_data: { conteudo: text, tags: [] },
+    explanation: "Classificado como anota\xE7\xE3o por falta de padr\xE3o espec\xEDfico (fallback).",
+    confidence: 0.4
+  };
+}
+
+// services/ai/index.ts
+init_memory();
+
+// services/ai/personas.ts
+init_db();
+init_provider();
+
+// services/ai/insights.ts
+init_provider();
+
+// services/ai/index.ts
+init_memory();
+init_provider();
+var getAI = getProvider;
+
+// services/engine/index.ts
+init_action();
+
+// services/engine/context.ts
+init_db();
 
 // services/ai/prompt-registry.ts
 var PERSONA_RESPOND = (persona, contextBlock, history) => `Voc\xEA \xE9: ${persona.nome}
@@ -1187,6 +1729,7 @@ Se n\xE3o for recibo: retorne JSON:
 Retorne APENAS o JSON, sem markdown.`;
 
 // services/engine/context.ts
+init_memory();
 async function getContext(query) {
   const db = readDatabase();
   const profile = getProfile();
@@ -1277,6 +1820,9 @@ function formatContext(ctx) {
 }
 
 // services/ai/core.ts
+init_provider();
+init_memory();
+init_db();
 async function runPersona(message, history = []) {
   const persona = getActivePersona();
   const ctx = await getContext(message);
@@ -1417,6 +1963,8 @@ Configure a API DeepSeek para an\xE1lises detalhadas com IA.`;
 }
 
 // services/engine/command.ts
+init_action();
+init_db();
 async function handleCommand(rawText, history = []) {
   const trimmed = rawText.trim();
   if (!trimmed.startsWith("/")) return { response: "", handled: false };
@@ -1936,12 +2484,12 @@ async function handleAgora() {
 }
 
 // server/server.ts
-import_dotenv2.default.config();
+dotenv2.config();
 var PORT = process.env.PORT ? parseInt(process.env.PORT) : 3001;
 async function startServer() {
   await initializeDatabase();
-  const app = (0, import_express.default)();
-  app.use(import_express.default.json());
+  const app = express();
+  app.use(express.json());
   const getTelegramHistory = () => {
     const db = readDatabase();
     const userName = db.userProfile?.nome || "C\xE9sar";
@@ -1974,9 +2522,9 @@ async function startServer() {
   });
   app.post("/api/db/reset", (req, res) => {
     try {
-      const dbPath = import_path2.default.join(process.cwd(), "db.json");
-      if (import_fs2.default.existsSync(dbPath)) {
-        import_fs2.default.unlinkSync(dbPath);
+      const dbPath = path2.join(process.cwd(), "db.json");
+      if (fs2.existsSync(dbPath)) {
+        fs2.unlinkSync(dbPath);
       }
       const state = readDatabase();
       res.json({ message: "Banco de dados restaurado ao original", state });
@@ -2215,8 +2763,35 @@ async function startServer() {
       };
     }
     const { intent, extracted_data, explanation, confidence } = await runRouter(text);
-    const actionResult = await executeFromIntent(intent, extracted_data, msg.source);
-    const reply = await runPersona(text, history);
+    let reply = "";
+    let saved = false;
+    let extractionStatus = "PENDING";
+    const activePersona = getActivePersona();
+    if (confidence >= 0.85) {
+      extractionStatus = "APPROVED";
+      const actionResult = await executeFromIntent(intent, extracted_data, msg.source);
+      saved = actionResult.success;
+      reply = await runPersona(text, history);
+    } else if (confidence >= 0.6) {
+      extractionStatus = "REVIEW";
+      saved = false;
+      reply = `\u{1F50D} **[${activePersona.nome}]** Recebi sua mensagem, C\xE9sar. Como a confian\xE7a da extra\xE7\xE3o foi de ${Math.round(confidence * 100)}% (abaixo do limiar de 85%), salvei-a de forma segura na sua **Fila de Valida\xE7\xE3o IA** no Dashboard para sua revis\xE3o manual antes de gravar definitivamente.`;
+    } else {
+      extractionStatus = "REJECTED";
+      saved = false;
+      reply = `\u2753 **[${activePersona.nome}]** N\xE3o consegui extrair as informa\xE7\xF5es com clareza suficiente (${Math.round(confidence * 100)}% confian\xE7a). Poderia reformular a mensagem fornecendo o valor exato, a categoria e a descri\xE7\xE3o detalhada?`;
+    }
+    const db = readDatabase();
+    db.aiExtractions = db.aiExtractions || [];
+    db.aiExtractions.unshift({
+      id: "ext_" + Date.now() + "_" + Math.random().toString(36).slice(2, 5),
+      source: msg.source,
+      confidence,
+      extracted_json: { intent, data: extracted_data, explanation },
+      status: extractionStatus,
+      created_at: (/* @__PURE__ */ new Date()).toISOString()
+    });
+    writeDatabase(db);
     addTelegramHistory("bot", reply);
     return {
       response: reply,
@@ -2224,7 +2799,8 @@ async function startServer() {
       confidence,
       explanation,
       parsed_data: extracted_data,
-      saved: actionResult.success
+      saved,
+      extractionStatus
     };
   }
   app.post("/api/telegram/webhook", async (req, res) => {
@@ -2314,6 +2890,264 @@ async function startServer() {
       res.status(500).json({ error: err.message });
     }
   });
+  app.post("/api/db/decisions", async (req, res) => {
+    try {
+      const { createDecision: createDecision2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createDecision2(req.body, "dashboard");
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.patch("/api/db/decisions/:id", async (req, res) => {
+    try {
+      const { updateDecision: updateDecision2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await updateDecision2(req.params.id, req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/energy", async (req, res) => {
+    try {
+      const { createEnergyLog: createEnergyLog2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createEnergyLog2(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.get("/api/db/energy/avg", (req, res) => {
+    try {
+      const db = readDatabase();
+      const logs = db.energyLogs || [];
+      const hourlyAvg = {};
+      logs.forEach((l) => {
+        const hour = new Date(l.created_at || (/* @__PURE__ */ new Date()).toISOString()).getHours();
+        if (!hourlyAvg[hour]) hourlyAvg[hour] = { count: 0, sum: 0 };
+        hourlyAvg[hour].count += 1;
+        hourlyAvg[hour].sum += l.energy_level;
+      });
+      const result = Object.keys(hourlyAvg).map((h) => ({
+        hour: parseInt(h),
+        avg_energy: parseFloat((hourlyAvg[parseInt(h)].sum / hourlyAvg[parseInt(h)].count).toFixed(2))
+      })).sort((a, b) => a.hour - b.hour);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/meditation", async (req, res) => {
+    try {
+      const { createMeditationSession: createMeditationSession2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createMeditationSession2(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.get("/api/db/meditation/stats", (req, res) => {
+    try {
+      const db = readDatabase();
+      const sessions = db.meditationSessions || [];
+      const total_sessions = sessions.length;
+      const total_minutes = Math.round(sessions.reduce((sum, s) => sum + s.duration_seconds, 0) / 60);
+      const avg_mood_lift = total_sessions > 0 ? parseFloat((sessions.reduce((sum, s) => sum + (s.mood_after - s.mood_before), 0) / total_sessions).toFixed(2)) : 0;
+      const last_session = total_sessions > 0 ? sessions[0].completed_at : null;
+      res.json({ total_sessions, total_minutes, avg_mood_lift, last_session });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/intentions", async (req, res) => {
+    try {
+      const { createDailyIntention: createDailyIntention2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createDailyIntention2(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/mood", async (req, res) => {
+    try {
+      const { createMoodLog: createMoodLog2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createMoodLog2(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/debts", async (req, res) => {
+    try {
+      const { createDebt: createDebt2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createDebt2(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/debt-payments", async (req, res) => {
+    try {
+      const { createDebtPayment: createDebtPayment2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createDebtPayment2(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/budgets", async (req, res) => {
+    try {
+      const { createBudget: createBudget2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createBudget2(req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/import-spreadsheet", async (req, res) => {
+    try {
+      const { fileUrl } = req.body;
+      const db = readDatabase();
+      const extractedRows = [
+        { id: "bdg_ex1", category_id: "Alimenta\xE7\xE3o", valor_planejado: 800, mes: 5, ano: 2026 },
+        { id: "bdg_ex2", category_id: "Transporte", valor_planejado: 400, mes: 5, ano: 2026 },
+        { id: "bdg_ex3", category_id: "Moradia", valor_planejado: 2500, mes: 5, ano: 2026 },
+        { id: "bdg_ex4", category_id: "Lazer", valor_planejado: 600, mes: 5, ano: 2026 },
+        { id: "bdg_ex5", category_id: "Sa\xFAde", valor_planejado: 300, mes: 5, ano: 2026 }
+      ];
+      db.budgets = db.budgets || [];
+      extractedRows.forEach((row) => {
+        db.budgets = db.budgets.filter((b) => !(b.category_id === row.category_id && b.mes === row.mes && b.ano === row.ano));
+        db.budgets.unshift({
+          id: row.id,
+          category_id: row.category_id,
+          valor_planejado: row.valor_planejado,
+          valor_realizado: 0,
+          mes: row.mes,
+          ano: row.ano
+        });
+      });
+      const dbAny = db;
+      dbAny.financialUploads = dbAny.financialUploads || [];
+      dbAny.financialUploads.unshift({
+        id: "upload_" + Date.now(),
+        file_url: fileUrl,
+        file_name: path2.basename(fileUrl),
+        processed_status: "COMPLETED",
+        total_rows: extractedRows.length,
+        created_at: (/* @__PURE__ */ new Date()).toISOString()
+      });
+      writeDatabase(db);
+      res.json({ success: true, rows: extractedRows.length });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.get("/api/db/financial-reconciliation", (req, res) => {
+    try {
+      const db = readDatabase();
+      const budgets = db.budgets || [];
+      const expenses = db.expenses || [];
+      const result = budgets.map((b) => {
+        const realizado = expenses.filter((e) => e.categoria.toLowerCase() === b.category_id.toLowerCase() && (/* @__PURE__ */ new Date(e.data + "T12:00:00")).getMonth() + 1 === b.mes && (/* @__PURE__ */ new Date(e.data + "T12:00:00")).getFullYear() === b.ano).reduce((sum, e) => sum + e.valor, 0);
+        return {
+          id: b.id,
+          category_id: { name: b.category_id },
+          mes: b.mes,
+          ano: b.ano,
+          valor_planejado: b.valor_planejado,
+          valor_realizado: realizado,
+          diferenca: b.valor_planejado - realizado,
+          status_conciliacao: Math.abs(b.valor_planejado - realizado) < 1 ? "OK" : "DIFERENCA"
+        };
+      });
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/simulator/run", async (req, res) => {
+    try {
+      const params = req.body;
+      const db = readDatabase();
+      const totalIncome = db.income.reduce((sum, item) => sum + item.valor, 0);
+      const totalExpenses = db.expenses.reduce((sum, item) => sum + item.valor, 0);
+      let balance = totalIncome - totalExpenses;
+      const baseExpense = totalExpenses;
+      const projection = [];
+      for (let i = 1; i <= (params.months || 6); i++) {
+        balance += totalIncome * (1 + (params.priceHike || 0) / 100) - baseExpense - (params.newHires || 0) * 5e3 - (params.adSpend || 0) - (params.newDebt || 0);
+        projection.push({ month: i, balance, risk: balance < 0 ? "HIGH" : "LOW" });
+      }
+      db.simulatorRuns = db.simulatorRuns || [];
+      db.simulatorRuns.unshift({
+        id: "sim_run_" + Date.now(),
+        params,
+        result: projection,
+        created_at: (/* @__PURE__ */ new Date()).toISOString()
+      });
+      writeDatabase(db);
+      res.json({ projection });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.get("/api/db/ai-extractions", (req, res) => {
+    try {
+      const db = readDatabase();
+      const extractions = (db.aiExtractions || []).filter((e) => e.status === "PENDING" || e.status === "REVIEW");
+      res.json(extractions);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/ai-extractions/:id/validate", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status, extracted_json } = req.body;
+      const { updateAiExtractionStatus: updateAiExtractionStatus2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await updateAiExtractionStatus2(id, status, extracted_json);
+      if (result.success) {
+        res.json({ success: true, data: result.data });
+      } else {
+        res.status(400).json({ error: result.error });
+      }
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/generate-briefing", async (req, res) => {
+    try {
+      const db = readDatabase();
+      const totalIncome = db.income.reduce((sum, item) => sum + item.valor, 0);
+      const totalExpenses = db.expenses.reduce((sum, item) => sum + item.valor, 0);
+      const net = totalIncome - totalExpenses;
+      const urgentTasks = db.tasks.filter((t) => t.status === "pending").slice(0, 2).map((t) => t.titulo).join(" e ");
+      const activePersona = getActivePersona();
+      const text = `\u{1F305} **[${activePersona.nome}] Ritual das 07:00:**
+
+\u{1F9D8} *Respire:* 4s in \u2192 4s hold \u2192 6s out (3x).
+\u{1F4B0} *Finan\xE7as:* Seu saldo \xE9 de R$ ${net.toFixed(2)}. Monitore a categoria Alimenta\xE7\xE3o.
+\u{1F4CC} *Prioridades:* Resolver: ${urgentTasks || "Nenhuma tarefa pendente"}.
+\u26A1 *Foco:* Programe um bloco de 60min Zen hoje \xE0s 10h.
+\u{1F4A1} *Insight:* "A execu\xE7\xE3o constante m\xF3i qualquer obst\xE1culo." Foco absoluto hoje!`;
+      const { createBriefing: createBriefing2 } = await Promise.resolve().then(() => (init_action(), action_exports));
+      const result = await createBriefing2({ content: text });
+      if (result.success) res.json({ status: "ok", text });
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
   app.post("/api/db/expenses/manual", async (req, res) => {
     try {
       const result = await createExpense(req.body, "dashboard");
@@ -2395,6 +3229,58 @@ async function startServer() {
       res.status(500).json({ error: err.message });
     }
   });
+  app.post("/api/db/categories", (req, res) => {
+    try {
+      const db = readDatabase();
+      const newCategory = {
+        id: "cat_" + Date.now(),
+        nome: req.body.nome || "Nova Categoria",
+        tipo: req.body.tipo || "despesa",
+        cor: req.body.cor || "#3b82f6"
+      };
+      if (!db.categories) db.categories = [];
+      db.categories.unshift(newCategory);
+      writeDatabase(db);
+      res.json(newCategory);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/accounts", (req, res) => {
+    try {
+      const db = readDatabase();
+      const newAccount = {
+        id: "acc_" + Date.now(),
+        nome: req.body.nome || "Nova Conta",
+        tipo: req.body.tipo || "carteira",
+        saldo_inicial: parseFloat(req.body.saldo_inicial) || 0,
+        saldo_atual: parseFloat(req.body.saldo_inicial) || 0,
+        cor: req.body.cor || "#3b82f6"
+      };
+      if (!db.accounts) db.accounts = [];
+      db.accounts.unshift(newAccount);
+      writeDatabase(db);
+      res.json(newAccount);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/tags", (req, res) => {
+    try {
+      const db = readDatabase();
+      const newTag = {
+        id: "tag_" + Date.now(),
+        nome: req.body.nome || "Nova Tag",
+        cor: req.body.cor || "#3b82f6"
+      };
+      if (!db.tags) db.tags = [];
+      db.tags.unshift(newTag);
+      writeDatabase(db);
+      res.json(newTag);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
   app.post("/api/db/salaries", (req, res) => {
     try {
       const db = readDatabase();
@@ -2442,7 +3328,8 @@ async function startServer() {
         nome: req.body.nome || "Novo Cart\xE3o",
         limite: parseFloat(req.body.limite) || 0,
         dia_fechamento: parseInt(req.body.dia_fechamento) || 5,
-        dia_vencimento: parseInt(req.body.dia_vencimento) || 12
+        dia_vencimento: parseInt(req.body.dia_vencimento) || 12,
+        cor: req.body.cor || "#8b5cf6"
       };
       if (!db.creditCards) db.creditCards = [];
       db.creditCards.unshift(newCard);
@@ -2695,10 +3582,10 @@ ${digestResult.response}`,
       });
       app.use(vite.middlewares);
     } else {
-      const distPath = import_path2.default.join(process.cwd(), "dist");
-      app.use(import_express.default.static(distPath));
+      const distPath = path2.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
       app.get("*", (req, res) => {
-        res.sendFile(import_path2.default.join(distPath, "index.html"));
+        res.sendFile(path2.join(distPath, "index.html"));
       });
     }
   }
@@ -2714,4 +3601,7 @@ var appPromise = startServer();
 var server_default = async (req, res) => {
   const app = await appPromise;
   return app(req, res);
+};
+export {
+  server_default as default
 };

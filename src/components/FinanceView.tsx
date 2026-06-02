@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   AreaChart, Area
@@ -18,15 +18,55 @@ interface FinanceViewProps {
 
 export default function FinanceView({ data, onRefresh, theme = 'light' }: FinanceViewProps) {
   const [activeLedger, setActiveLedger] = useState<'all' | 'expense' | 'income'>('all');
+  const [timeFilter, setTimeFilter] = useState<'all' | 'week' | 'month' | 'year'>('all');
 
-  const totalIncome = data.income.reduce((sum, item) => sum + item.valor, 0);
-  const totalExpenses = data.expenses.reduce((sum, item) => sum + item.valor, 0);
+  // Filter incomes and expenses based on selected period
+  const getFilteredItems = () => {
+    const today = new Date();
+    
+    // Start of current week (Monday)
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const startOfWeek = new Date(today.getFullYear(), today.getMonth(), diff);
+    startOfWeek.setHours(0,0,0,0);
+
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    startOfMonth.setHours(0,0,0,0);
+
+    const startOfYear = new Date(today.getFullYear(), 0, 1);
+    startOfYear.setHours(0,0,0,0);
+
+    const filterFunc = (itemDateStr: string) => {
+      if (timeFilter === 'all') return true;
+      const itemDate = new Date(itemDateStr + 'T12:00:00'); // avoid timezone shifts
+      if (timeFilter === 'week') {
+        return itemDate >= startOfWeek && itemDate <= today;
+      }
+      if (timeFilter === 'month') {
+        return itemDate >= startOfMonth && itemDate <= today;
+      }
+      if (timeFilter === 'year') {
+        return itemDate >= startOfYear && itemDate <= today;
+      }
+      return true;
+    };
+
+    return {
+      income: data.income.filter(i => filterFunc(i.data)),
+      expenses: data.expenses.filter(e => filterFunc(e.data))
+    };
+  };
+
+  const filteredData = getFilteredItems();
+
+  const totalIncome = filteredData.income.reduce((sum, item) => sum + item.valor, 0);
+  const totalExpenses = filteredData.expenses.reduce((sum, item) => sum + item.valor, 0);
   const totalBalance = totalIncome - totalExpenses;
   const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : 0;
 
   // Preparing charts data
   const categoriesMap: { [key: string]: number } = {};
-  data.expenses.forEach(e => {
+  filteredData.expenses.forEach(e => {
     categoriesMap[e.categoria] = (categoriesMap[e.categoria] || 0) + e.valor;
   });
 
@@ -43,8 +83,8 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
 
   // Combined ledger listing sorted by date descending
   const fullLedger = [
-    ...data.income.map(i => ({ ...i, type: 'income' as const })),
-    ...data.expenses.map(e => ({ ...e, type: 'expense' as const }))
+    ...filteredData.income.map(i => ({ ...i, type: 'income' as const })),
+    ...filteredData.expenses.map(e => ({ ...e, type: 'expense' as const }))
   ].sort((a, b) => b.data.localeCompare(a.data));
 
   const filteredLedger = fullLedger.filter(item => {
@@ -86,6 +126,39 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
   return (
     <div className="space-y-6">
       
+      {/* Header period filter selector */}
+      <div className={`p-4 md:p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${c.cardBg} shadow-sm`}>
+        <div>
+          <span className="text-[9px] font-mono font-black text-blue-500 tracking-wider uppercase">Contabilidade Consolidada</span>
+          <h2 className={`text-lg font-black tracking-tight mt-0.5 ${c.titleText}`}>Lançamentos & Fluxo de Caixa</h2>
+          <p className={`text-xs mt-0.5 ${c.subText}`}>Consulte o histórico transacional relacional, gerencie categorias e filtre por períodos.</p>
+        </div>
+
+        {/* Period filter buttons */}
+        <div className={`flex gap-1 rounded-xl p-0.5 select-none text-xs border self-start md:self-auto ${
+          theme === 'dark' ? 'bg-[#090a0d] border-[#1d202a]' : 'bg-slate-100 border-slate-200'
+        }`}>
+          {[
+            { id: 'all', label: 'Tudo' },
+            { id: 'week', label: 'Semana' },
+            { id: 'month', label: 'Mês' },
+            { id: 'year', label: 'Ano' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setTimeFilter(item.id as any)}
+              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer select-none ${
+                timeFilter === item.id 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 1. Financial high level metrics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         
@@ -244,10 +317,10 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
                     <td className="py-2.5 px-2 font-mono text-blue-500 uppercase font-bold text-[10px]">Fixo</td>
                     <td className="py-2.5 px-2 text-right font-mono text-slate-400">R$ 8.500,00</td>
                     <td className={`py-2.5 px-2 text-right font-mono font-black ${c.titleText}`}>
-                      R$ {data.income.filter(i => i.categoria.toLowerCase() === 'salário').reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {filteredData.income.filter(i => i.categoria.toLowerCase() === 'salário').reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="py-2.5 pl-2 text-right font-mono text-slate-400">
-                      {((data.income.filter(i => i.categoria.toLowerCase() === 'salário').reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%
+                      {((filteredData.income.filter(i => i.categoria.toLowerCase() === 'salário').reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%
                     </td>
                   </tr>
 
@@ -260,10 +333,10 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
                     <td className="py-2.5 px-2 font-mono text-emerald-500 uppercase font-bold text-[10px]">Adicional</td>
                     <td className="py-2.5 px-2 text-right font-mono text-slate-400">R$ 5.000,00</td>
                     <td className={`py-2.5 px-2 text-right font-mono font-black ${c.titleText}`}>
-                      R$ {data.income.filter(i => ['consultoria', 'freelance', 'freelancer', 'mentoria'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {filteredData.income.filter(i => ['consultoria', 'freelance', 'freelancer', 'mentoria'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="py-2.5 pl-2 text-right font-mono text-slate-400">
-                      {((data.income.filter(i => ['consultoria', 'freelance', 'freelancer', 'mentoria'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%
+                      {((filteredData.income.filter(i => ['consultoria', 'freelance', 'freelancer', 'mentoria'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%
                     </td>
                   </tr>
 
@@ -276,10 +349,10 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
                     <td className="py-2.5 px-2 font-mono text-purple-500 uppercase font-bold text-[10px]">Adicional</td>
                     <td className="py-2.5 px-2 text-right font-mono text-slate-400">R$ 2.000,00</td>
                     <td className={`py-2.5 px-2 text-right font-mono font-black ${c.titleText}`}>
-                      R$ {data.income.filter(i => ['saas', 'dividendos', 'micro-saas', 'rendimentos'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {filteredData.income.filter(i => ['saas', 'dividendos', 'micro-saas', 'rendimentos'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td className="py-2.5 pl-2 text-right font-mono text-slate-400">
-                      {((data.income.filter(i => ['saas', 'dividendos', 'micro-saas', 'rendimentos'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%
+                      {((filteredData.income.filter(i => ['saas', 'dividendos', 'micro-saas', 'rendimentos'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%
                     </td>
                   </tr>
 
@@ -292,10 +365,10 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
                     <td className="py-2.5 px-2 font-mono text-slate-550 uppercase font-bold text-[10px]">Adicional</td>
                     <td className="py-2.5 px-2 text-right font-mono text-slate-400">R$ 500,00</td>
                     <td className={`py-2.5 px-2 text-right font-mono font-black ${c.titleText}`}>
-                      R$ {data.income.filter(i => !['salário', 'consultoria', 'freelance', 'freelancer', 'saas', 'dividendos', 'micro-saas', 'rendimentos', 'mentoria'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      R$ {filteredData.income.filter(i => !['salário', 'consultoria', 'freelance', 'freelancer', 'saas', 'dividendos', 'micro-saas', 'rendimentos', 'mentoria'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
-                    <td className="py-2.5 pl-2 text-right font-mono text-slate-400">
-                      {((data.income.filter(i => !['salário', 'consultoria', 'freelance', 'freelancer', 'saas', 'dividendos', 'micro-saas', 'rendimentos', 'mentoria'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%
+                    <td className="py-2.5 pl-2 text-right font-mono text-slate-405">
+                      {((filteredData.income.filter(i => !['salário', 'consultoria', 'freelance', 'freelancer', 'saas', 'dividendos', 'micro-saas', 'rendimentos', 'mentoria'].includes(i.categoria.toLowerCase())).reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%
                     </td>
                   </tr>
                 </tbody>
@@ -312,19 +385,19 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
                 <div className="flex justify-between items-center text-xs">
                   <span className={c.subText}>Total Fixo (Salário CLT):</span>
                   <span className={`font-mono font-bold ${c.titleText}`}>
-                    R$ {data.income.filter(i => i.categoria.toLowerCase() === 'salário').reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {filteredData.income.filter(i => i.categoria.toLowerCase() === 'salário').reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs mt-2">
                   <span className={c.subText}>Total Dinheiro Adicional (Extras):</span>
                   <span className="font-mono font-bold text-emerald-500">
-                    R$ {data.income.filter(i => i.categoria.toLowerCase() !== 'salário').reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    R$ {filteredData.income.filter(i => i.categoria.toLowerCase() !== 'salário').reduce((sum, item) => sum + item.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>
 
               <div className={`p-3.5 rounded-lg border text-[11px] leading-relaxed transition-colors duration-200 ${theme === 'dark' ? 'bg-[#121c16] border-[#1a3821] text-emerald-400' : 'bg-emerald-50 border-emerald-250 text-emerald-700'}`}>
-                <strong>📊 Proporção Dinâmica:</strong> Seu dinheiro adicional representa <strong className="font-mono font-black">{((data.income.filter(i => i.categoria.toLowerCase() !== 'salário').reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%</strong> de todas as receitas do mês. Essa forte diversificação garante uma blindagem e permite acelerar seus investimentos em novas ideias de software!
+                <strong>📊 Proporção Dinâmica:</strong> Seu dinheiro adicional representa <strong className="font-mono font-black">{((filteredData.income.filter(i => i.categoria.toLowerCase() !== 'salário').reduce((sum, item) => sum + item.valor, 0) / (totalIncome || 1)) * 100).toFixed(0)}%</strong> de todas as receitas do mês. Essa forte diversificação garante uma blindagem e permite acelerar seus investimentos em novas ideias de software!
               </div>
             </div>
           </div>

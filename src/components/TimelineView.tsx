@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Clock, Filter, Sparkles, AlertCircle, FileText, CheckCircle, RefreshCw, Send, HelpCircle, Trash2 } from 'lucide-react';
 import { DatabaseState, InboxItem } from '../types';
 import { showToast } from './Toast';

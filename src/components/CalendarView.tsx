@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { 
   googleSignIn, logout, getAccessToken, initAuth 
 } from '../lib/firebaseAuth';
@@ -333,9 +333,9 @@ export default function CalendarView({ data, onRefresh, theme = 'light' }: Calen
     subText: 'text-slate-500',
     mutedText: 'text-slate-400',
     divider: 'border-slate-100',
-    inputBg: 'bg-slate-50 border-slate-200 text-slate-850 placeholder-slate-400',
+    inputBg: 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400',
     rowBg: 'bg-slate-50 border-slate-200 hover:border-blue-500/20 text-slate-700',
-    buttonSecondary: 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-850 hover:border-slate-350',
+    buttonSecondary: 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-350',
     deleteButton: 'bg-slate-100 border-slate-200 text-slate-500 hover:text-rose-500 hover:border-rose-300',
     bannerBg: 'bg-slate-50 border-slate-200'
   };

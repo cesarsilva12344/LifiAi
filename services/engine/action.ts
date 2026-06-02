@@ -66,10 +66,25 @@ export async function createExpense(
       id: uid('exp'),
       valor: Number(data.valor),
       categoria: data.categoria || 'Geral',
+      categoria_id: data.categoria_id,
+      conta_id: data.conta_id,
+      cartao_id: data.cartao_id,
       descricao: data.descricao || '',
       data: data.data || today(),
+      tag_ids: data.tag_ids || [],
+      quitada: data.quitada !== undefined ? data.quitada : true,
     };
     db.expenses.unshift(entity);
+    
+    // Debit from account
+    if (entity.conta_id) {
+      db.accounts = db.accounts || [];
+      const acc = db.accounts.find(a => a.id === entity.conta_id);
+      if (acc) {
+        acc.saldo_atual = Number(acc.saldo_atual) - entity.valor;
+      }
+    }
+
     writeDatabase(db);
     const inboxId = addToInbox(
       'expense',
@@ -93,10 +108,24 @@ export async function createIncome(
       id: uid('inc'),
       valor: Number(data.valor),
       categoria: data.categoria || 'Receita',
+      categoria_id: data.categoria_id,
+      conta_id: data.conta_id,
       descricao: data.descricao || '',
       data: data.data || today(),
+      tag_ids: data.tag_ids || [],
+      quitada: data.quitada !== undefined ? data.quitada : true,
     };
     db.income.unshift(entity);
+
+    // Credit to account
+    if (entity.conta_id) {
+      db.accounts = db.accounts || [];
+      const acc = db.accounts.find(a => a.id === entity.conta_id);
+      if (acc) {
+        acc.saldo_atual = Number(acc.saldo_atual) + entity.valor;
+      }
+    }
+
     writeDatabase(db);
     const inboxId = addToInbox(
       'income',
@@ -735,6 +764,28 @@ export async function deleteEntity(collection: Collection, id: string): Promise<
   try {
     const db = readDatabase() as any;
     if (!Array.isArray(db[collection])) return { success: false, error: 'Coleção inválida' };
+
+    // Reverse account balance adjustment on deletion
+    if (collection === 'expenses') {
+      const expense = db.expenses.find((e: any) => e.id === id);
+      if (expense && expense.conta_id) {
+        db.accounts = db.accounts || [];
+        const acc = db.accounts.find((a: any) => a.id === expense.conta_id);
+        if (acc) {
+          acc.saldo_atual = Number(acc.saldo_atual) + Number(expense.valor);
+        }
+      }
+    } else if (collection === 'income') {
+      const income = db.income.find((i: any) => i.id === id);
+      if (income && income.conta_id) {
+        db.accounts = db.accounts || [];
+        const acc = db.accounts.find((a: any) => a.id === income.conta_id);
+        if (acc) {
+          acc.saldo_atual = Number(acc.saldo_atual) - Number(income.valor);
+        }
+      }
+    }
+
     const before = db[collection].length;
     db[collection] = db[collection].filter((item: any) => item.id !== id);
     if (db[collection].length === before) return { success: false, error: 'Item não encontrado' };

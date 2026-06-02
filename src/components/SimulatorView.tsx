@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine 
 } from 'recharts';
@@ -63,7 +63,7 @@ export default function SimulatorView({ theme = 'light' }: SimulatorProps) {
       }
     : {
         cardBg: 'bg-white border-slate-200 text-slate-800',
-        titleText: 'text-slate-850',
+        titleText: 'text-slate-800',
         subText: 'text-slate-500',
         divider: 'border-slate-100',
         formBg: 'bg-slate-50/60 border-slate-200',
@@ -94,70 +94,152 @@ export default function SimulatorView({ theme = 'light' }: SimulatorProps) {
             <h4 className="text-xs font-bold uppercase tracking-wider">Parâmetros de Cenários</h4>
           </div>
 
-          <div className="space-y-4 text-xs">
+          <div className="space-y-5 text-xs">
             {/* Horizon Months */}
             <div className="space-y-1.5">
-              <div className="flex justify-between font-mono text-[10px] font-bold text-slate-400">
-                <span>Horizonte Temporal:</span>
-                <span className="text-indigo-400">{months} meses</span>
+              <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Horizonte Temporal (Meses)</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMonths(prev => Math.max(3, prev - 1))}
+                  className="w-8 h-8 flex items-center justify-center border border-slate-350 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition cursor-pointer select-none"
+                >
+                  -
+                </button>
+                <input 
+                  type="number" min={3} max={18} value={months}
+                  onChange={e => setMonths(Math.max(3, Math.min(18, Number(e.target.value) || 3)))}
+                  className="flex-1 bg-slate-50/50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 text-center font-mono font-bold focus:outline-none focus:border-indigo-500 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMonths(prev => Math.min(18, prev + 1))}
+                  className="w-8 h-8 flex items-center justify-center border border-slate-350 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition cursor-pointer select-none"
+                >
+                  +
+                </button>
               </div>
-              <input 
-                type="range" min={3} max={18} step={1} value={months}
-                onChange={e => setMonths(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-              />
             </div>
 
             {/* New Hires */}
             <div className="space-y-1.5">
-              <div className="flex justify-between font-mono text-[10px] font-bold text-slate-400">
-                <span>Novas Contratações:</span>
-                <span className="text-indigo-400">{newHires} colaboradores (-R$ 5.000,00/mês cada)</span>
+              <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Novas Contratações</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewHires(prev => Math.max(0, prev - 1))}
+                  className="w-8 h-8 flex items-center justify-center border border-slate-350 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition cursor-pointer select-none"
+                >
+                  -
+                </button>
+                <input 
+                  type="number" min={0} max={15} value={newHires}
+                  onChange={e => setNewHires(Math.max(0, Math.min(15, Number(e.target.value) || 0)))}
+                  className="flex-1 bg-slate-50/50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 text-center font-mono font-bold focus:outline-none focus:border-indigo-500 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setNewHires(prev => Math.min(15, prev + 1))}
+                  className="w-8 h-8 flex items-center justify-center border border-slate-350 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition cursor-pointer select-none"
+                >
+                  +
+                </button>
               </div>
-              <input 
-                type="range" min={0} max={10} step={1} value={newHires}
-                onChange={e => setNewHires(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-              />
+              <span className="text-[9px] text-slate-450 block font-mono">Custo incremental estimado: R$ {(newHires * 5000).toLocaleString('pt-BR')}/mês</span>
             </div>
 
             {/* Ad Spend */}
             <div className="space-y-1.5">
-              <div className="flex justify-between font-mono text-[10px] font-bold text-slate-400">
-                <span>Aporte de Marketing / Anúncios:</span>
-                <span className="text-indigo-400">R$ {adSpend.toLocaleString('pt-BR')}/mês</span>
-              </div>
+              <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Marketing & Anúncios (R$/mês)</label>
               <input 
-                type="range" min={0} max={25000} step={1000} value={adSpend}
-                onChange={e => setAdSpend(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                type="number" min={0} value={adSpend}
+                onChange={e => setAdSpend(Math.max(0, Number(e.target.value) || 0))}
+                className="w-full bg-slate-50/50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 font-mono font-bold focus:outline-none focus:border-indigo-500 transition animate-fade-in"
               />
+              <div className="flex flex-wrap gap-1.5">
+                {[0, 1000, 5000, 10000, 20000].map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setAdSpend(val)}
+                    className={`px-2 py-0.5 rounded text-[9px] font-bold border transition cursor-pointer select-none ${
+                      adSpend === val 
+                        ? 'bg-indigo-600 text-white border-indigo-600' 
+                        : 'bg-slate-50/20 text-slate-450 border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500'
+                    }`}
+                  >
+                    {val === 0 ? 'Zerar' : `R$ ${val / 1000}k`}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* New Debt */}
             <div className="space-y-1.5">
-              <div className="flex justify-between font-mono text-[10px] font-bold text-slate-400">
-                <span>Novos Financiamentos / Dívidas:</span>
-                <span className="text-indigo-400">R$ {newDebt.toLocaleString('pt-BR')}/mês</span>
-              </div>
+              <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Financiamentos / Dívidas (R$/mês)</label>
               <input 
-                type="range" min={0} max={15000} step={500} value={newDebt}
-                onChange={e => setNewDebt(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+                type="number" min={0} value={newDebt}
+                onChange={e => setNewDebt(Math.max(0, Number(e.target.value) || 0))}
+                className="w-full bg-slate-50/50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-2 font-mono font-bold focus:outline-none focus:border-indigo-500 transition"
               />
+              <div className="flex flex-wrap gap-1.5">
+                {[0, 1000, 3000, 5000, 10000].map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setNewDebt(val)}
+                    className={`px-2 py-0.5 rounded text-[9px] font-bold border transition cursor-pointer select-none ${
+                      newDebt === val 
+                        ? 'bg-indigo-600 text-white border-indigo-600' 
+                        : 'bg-slate-50/20 text-slate-455 border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500'
+                    }`}
+                  >
+                    {val === 0 ? 'Zerar' : `R$ ${val / 1000}k`}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Price Hike */}
             <div className="space-y-1.5">
-              <div className="flex justify-between font-mono text-[10px] font-bold text-slate-400">
-                <span>Variação de Preço (SaaS):</span>
-                <span className={`${priceHike >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>{priceHike >= 0 ? '+' : ''}{priceHike}% de Receita</span>
+              <label className="block font-mono text-[10px] font-bold uppercase tracking-wider text-slate-400">Ajuste de Preço / Receita (%)</label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPriceHike(prev => prev - 5)}
+                  className="w-8 h-8 flex items-center justify-center border border-slate-350 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition cursor-pointer select-none"
+                >
+                  -5%
+                </button>
+                <input 
+                  type="number" value={priceHike}
+                  onChange={e => setPriceHike(Number(e.target.value) || 0)}
+                  className="flex-1 bg-slate-50/50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 text-center font-mono font-bold focus:outline-none focus:border-indigo-500 transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPriceHike(prev => prev + 5)}
+                  className="w-8 h-8 flex items-center justify-center border border-slate-350 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-xs font-bold transition cursor-pointer select-none"
+                >
+                  +5%
+                </button>
               </div>
-              <input 
-                type="range" min={-30} max={50} step={5} value={priceHike}
-                onChange={e => setPriceHike(Number(e.target.value))}
-                className="w-full h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-              />
+              <div className="flex flex-wrap gap-1.5">
+                {[-10, 0, 10, 20, 50].map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setPriceHike(val)}
+                    className={`px-2 py-0.5 rounded text-[9px] font-bold border transition cursor-pointer select-none ${
+                      priceHike === val 
+                        ? 'bg-indigo-600 text-white border-indigo-600' 
+                        : 'bg-slate-50/20 text-slate-455 border-slate-300 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500'
+                    }`}
+                  >
+                    {val === 0 ? 'Manter' : `${val >= 0 ? '+' : ''}${val}%`}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button

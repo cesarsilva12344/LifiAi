@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { 
   Folder, PlayCircle, Layers, CheckSquare, Trash2, Clock, 
   Search, X, Plus, ChevronRight, BarChart 
