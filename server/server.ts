@@ -52,6 +52,18 @@ async function startServer() {
   const app = express();
   app.use(express.json());
 
+  // Middleware to resolve Vercel's path rewrites by recovering the original requested path
+  app.use((req, res, next) => {
+    const forwardedPath = req.headers['x-vercel-forwarded-path'] as string;
+    if (forwardedPath) {
+      const queryIndex = req.url.indexOf('?');
+      const queryString = queryIndex !== -1 ? req.url.substring(queryIndex) : '';
+      req.url = forwardedPath + queryString;
+      console.log(`[Vercel Route] Rewritten req.url to: ${req.url}`);
+    }
+    next();
+  });
+
   // In-memory/File-bound simulated Telegram Chat History
   const getTelegramHistory = () => {
     const db = readDatabase() as any;
@@ -1210,7 +1222,13 @@ async function startServer() {
       const text = message.text;
       
       const profile = getProfile();
-      if (profile.telegramChatId && String(chatId) !== String(profile.telegramChatId)) {
+      
+      // Auto-bind telegramChatId if not configured yet
+      if (!profile.telegramChatId) {
+        console.log(`[Telegram Bot] No telegramChatId set. Auto-binding to chatId: ${chatId}`);
+        updateProfile({ telegramChatId: String(chatId) });
+        profile.telegramChatId = String(chatId);
+      } else if (String(chatId) !== String(profile.telegramChatId)) {
         console.warn(`[Telegram Bot] Ignoring message from unauthorized chat ID: ${chatId}`);
         return res.status(200).send('OK');
       }

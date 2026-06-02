@@ -2505,6 +2505,16 @@ async function startServer() {
   await initializeDatabase();
   const app = express();
   app.use(express.json());
+  app.use((req, res, next) => {
+    const forwardedPath = req.headers["x-vercel-forwarded-path"];
+    if (forwardedPath) {
+      const queryIndex = req.url.indexOf("?");
+      const queryString = queryIndex !== -1 ? req.url.substring(queryIndex) : "";
+      req.url = forwardedPath + queryString;
+      console.log(`[Vercel Route] Rewritten req.url to: ${req.url}`);
+    }
+    next();
+  });
   const getTelegramHistory = () => {
     const db = readDatabase();
     const userName = db.userProfile?.nome || "C\xE9sar";
@@ -3482,7 +3492,11 @@ async function startServer() {
       const chatId = message.chat.id;
       const text = message.text;
       const profile = getProfile();
-      if (profile.telegramChatId && String(chatId) !== String(profile.telegramChatId)) {
+      if (!profile.telegramChatId) {
+        console.log(`[Telegram Bot] No telegramChatId set. Auto-binding to chatId: ${chatId}`);
+        updateProfile({ telegramChatId: String(chatId) });
+        profile.telegramChatId = String(chatId);
+      } else if (String(chatId) !== String(profile.telegramChatId)) {
         console.warn(`[Telegram Bot] Ignoring message from unauthorized chat ID: ${chatId}`);
         return res.status(200).send("OK");
       }
