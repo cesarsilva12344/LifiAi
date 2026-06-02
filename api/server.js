@@ -437,9 +437,9 @@ Tom elegante, calmo, altamente organizado, confi\xE1vel e coordenativo.`,
       { id: "cat_10", nome: "Investimentos", tipo: "receita", cor: "#eab308" }
     ];
     DEFAULT_ACCOUNTS = [
-      { id: "acc_1", nome: "Carteira", tipo: "carteira", saldo_inicial: 500, saldo_atual: 500, cor: "#f59e0b" },
-      { id: "acc_2", nome: "Santander C.C.", tipo: "corrente", saldo_inicial: 3e3, saldo_atual: 3e3, cor: "#ef4444" },
-      { id: "acc_3", nome: "NuConta", tipo: "corrente", saldo_inicial: 1e4, saldo_atual: 1e4, cor: "#8b5cf6" }
+      { id: "acc_1", nome: "Carteira", tipo: "carteira", saldo_inicial: 0, saldo_atual: 0, cor: "#f59e0b" },
+      { id: "acc_2", nome: "Santander C.C.", tipo: "corrente", saldo_inicial: 0, saldo_atual: 0, cor: "#ef4444" },
+      { id: "acc_3", nome: "NuConta", tipo: "corrente", saldo_inicial: 0, saldo_atual: 0, cor: "#8b5cf6" }
     ];
     DEFAULT_TAGS = [
       { id: "tag_1", nome: "Essencial", cor: "#64748b" },
@@ -448,8 +448,13 @@ Tom elegante, calmo, altamente organizado, confi\xE1vel e coordenativo.`,
       { id: "tag_4", nome: "Recorrente", cor: "#10b981" }
     ];
     DEFAULT_CREDIT_CARDS = [
-      { id: "card_1", nome: "Nubank Mastercard", limite: 5e3, dia_fechamento: 28, dia_vencimento: 5, cor: "#8b5cf6" },
-      { id: "card_2", nome: "XP Visa Infinite", limite: 8e3, dia_fechamento: 15, dia_vencimento: 22, cor: "#1e293b" }
+      { id: "card_nubank", nome: "Nubank Mastercard", limite: 5e3, dia_fechamento: 2, dia_vencimento: 10, cor: "#820ad1" },
+      { id: "card_picpay", nome: "PicPay Visa", limite: 4e3, dia_fechamento: 14, dia_vencimento: 20, cor: "#11c76f" },
+      { id: "card_itau", nome: "Ita\xFA Uniclass", limite: 6e3, dia_fechamento: 2, dia_vencimento: 9, cor: "#ec7000" },
+      { id: "card_inter", nome: "Inter Gold", limite: 4e3, dia_fechamento: 9, dia_vencimento: 15, cor: "#f97316" },
+      { id: "card_santander", nome: "Santander SX", limite: 3e3, dia_fechamento: 9, dia_vencimento: 13, cor: "#ef4444" },
+      { id: "card_mercadopago", nome: "Mercado Pago", limite: 3e3, dia_fechamento: 5, dia_vencimento: 10, cor: "#00aae4" },
+      { id: "card_nex", nome: "Nex Infinite", limite: 5e3, dia_fechamento: 5, dia_vencimento: 10, cor: "#3b82f6" }
     ];
     DEFAULT_STATE = {
       inbox: [],
@@ -3444,7 +3449,7 @@ async function startServer() {
       if (!profile.telegramBotToken) {
         return res.status(400).json({ error: "Token do Telegram Bot n\xE3o configurado." });
       }
-      const appUrl = process.env.APP_URL || "http://localhost:3000";
+      const appUrl = req.body.appUrl || process.env.APP_URL || "http://localhost:3000";
       const webhookUrl = `${appUrl}/api/telegram/real-webhook`;
       const registerUrl = `https://api.telegram.org/bot${profile.telegramBotToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`;
       const response = await fetch(registerUrl);

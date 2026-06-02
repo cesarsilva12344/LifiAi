@@ -1,7 +1,28 @@
 {
   "inbox": [],
-  "expenses": [],
-  "income": [],
+  "expenses": [
+    { "id": "exp_casa_may", "valor": 450.00, "categoria": "Moradia", "descricao": "Casa (Aluguel/Prestação)", "data": "2026-05-05", "conta_id": "acc_3", "quitada": true },
+    { "id": "exp_amorc_may", "valor": 65.00, "categoria": "Lazer", "descricao": "AMORC", "data": "2026-05-10", "conta_id": "acc_3", "quitada": true },
+    { "id": "exp_tim_may", "valor": 22.00, "categoria": "Assinaturas", "descricao": "Fatura Tim Celular", "data": "2026-05-12", "conta_id": "acc_3", "quitada": true },
+    { "id": "exp_car_may", "valor": 718.00, "categoria": "Transporte", "descricao": "Financiamento de Carro", "data": "2026-05-15", "conta_id": "acc_3", "quitada": true },
+    { "id": "exp_est_may", "valor": 190.00, "categoria": "Transporte", "descricao": "Estacionamento Mensal", "data": "2026-05-22", "conta_id": "acc_3", "quitada": true },
+    { "id": "exp_parc_may", "valor": 420.00, "categoria": "Moradia", "descricao": "Parcela Casa", "data": "2026-05-25", "conta_id": "acc_3", "quitada": true },
+    { "id": "exp_torra_may", "valor": 65.97, "categoria": "Lazer", "descricao": "Torra Torra", "data": "2026-05-28", "conta_id": "acc_3", "quitada": true },
+    
+    { "id": "exp_casa_jun", "valor": 450.00, "categoria": "Moradia", "descricao": "Casa (Aluguel/Prestação)", "data": "2026-06-05", "conta_id": "acc_3", "quitada": false },
+    { "id": "exp_amorc_jun", "valor": 65.00, "categoria": "Lazer", "descricao": "AMORC", "data": "2026-06-10", "conta_id": "acc_3", "quitada": false },
+    { "id": "exp_tim_jun", "valor": 25.00, "categoria": "Assinaturas", "descricao": "Fatura Tim Celular", "data": "2026-06-12", "conta_id": "acc_3", "quitada": false },
+    { "id": "exp_car_jun", "valor": 690.00, "categoria": "Transporte", "descricao": "Financiamento de Carro", "data": "2026-06-15", "conta_id": "acc_3", "quitada": false },
+    { "id": "exp_est_jun", "valor": 190.00, "categoria": "Transporte", "descricao": "Estacionamento Mensal", "data": "2026-06-22", "conta_id": "acc_3", "quitada": false },
+    { "id": "exp_parc_jun", "valor": 420.00, "categoria": "Moradia", "descricao": "Parcela Casa", "data": "2026-06-25", "conta_id": "acc_3", "quitada": false },
+    { "id": "exp_emp_jun", "valor": 491.00, "categoria": "Moradia", "descricao": "Empréstimo 99", "data": "2026-06-27", "conta_id": "acc_3", "quitada": false },
+    { "id": "exp_torra_jun", "valor": 65.97, "categoria": "Lazer", "descricao": "Torra Torra", "data": "2026-06-28", "conta_id": "acc_3", "quitada": false },
+    { "id": "exp_ipva_jun", "valor": 65.00, "categoria": "Moradia", "descricao": "IPVA", "data": "2026-06-30", "conta_id": "acc_3", "quitada": false }
+  ],
+  "income": [
+    { "id": "inc_sal_may", "valor": 3800.00, "categoria": "Salário", "descricao": "Pagamento Mensal", "data": "2026-05-05", "conta_id": "acc_3", "quitada": true },
+    { "id": "inc_sal_jun", "valor": 3800.00, "categoria": "Salário", "descricao": "Pagamento Mensal", "data": "2026-06-05", "conta_id": "acc_3", "quitada": false }
+  ],
   "tasks": [],
   "reminders": [],
   "goals": [],
@@ -30,42 +51,10 @@
     {
       "id": "mentor",
       "nome": "Mentor",
-      "descricao": "Foco em aprendizado contínuo, leitura, desenvolvimento técnico e intelectual.",
-      "prompt_base": "Você é um Mentor socrático e profundamente sábio. Seu foco é desenvolvimento pessoal, aprendizado técnico profundo, retenção de conhecimento e desenvolvimento de carreira sólida.\nQuando o usuário salvar notas ou ideias de aprendizado, faça conexões conceituais ricas, sugira novas fontes de estudo (como livros clássicos ou papers) e incentivo o raciocínio profundo.\nFale com tom de voz empático, inspirador e estruturado.",
+      "descricao": "Foco em desenvolvimento intelectual profundo e estudos socráticos.",
+      "prompt_base": "Você é um Mentor socrático e sábio. Seu foco é desenvolvimento intelectual profundo, retenção de conhecimento e carreira sólida.\nQuando o usuário salvar notas ou ideias de aprendizado, faça conexões conceituais ricas, sugira novas fontes de estudo (como livros clássicos ou papers).\nFale com tom de voz empático, inspirador e estruturado.",
       "ativa": false,
       "icon": "GraduationCap"
-    },
-    {
-      "id": "executor",
-      "nome": "Executor",
-      "descricao": "Foco total em ação, velocidade extrema, listas de tarefas táticas e pragmatismo.",
-      "prompt_base": "Você é a máquina de execução pessoal do usuário. Sem conversinhas, sem firulas. Seu foco é riscar tarefas da lista de uma forma implacável e de altíssima velocidade.\nDivida qualquer plano complexo em 3 ações que podem ser feitas nos próximos 15 minutos. Cobrar eficiência, disciplina e clareza.\nRespostas ultra-curtas, focadas em próximos passos acionáveis, bullet points, e cobrança disciplinada.",
-      "ativa": false,
-      "icon": "CheckSquare"
-    },
-    {
-      "id": "conselheiro",
-      "nome": "Conselheiro",
-      "descricao": "Foco em longo prazo, sabedoria de vida, equilíbrio mental e inteligência emocional.",
-      "prompt_base": "Você é um conselheiro sênior para decisões estratégicas de vida. Seu foco é o longo prazo (5 a 10 anos), sabedoria existencial, saúde integrativa, paz de espírito e inteligência emocional.\nEvite pressas artificiais. Ajude o usuário a ver o panorama geral (\"macro view\") e se as decisões estão alinhadas com seus valores éticos e pessoais mais profundos.\nTom calmo, assertivo, ponderado e esclarecedor.",
-      "ativa": false,
-      "icon": "Compass"
-    },
-    {
-      "id": "analista",
-      "nome": "Analista de Negócios",
-      "descricao": "Foco em mapeamento de oportunidades, inteligência competitiva e automação.",
-      "prompt_base": "Você é um brilhante Analista de Negócios especializado em automação, inteligência competitiva e gaps de mercado.\nSua função é analisar ideias brutas e encontrar mercados adjacentes, modelos de monetização eficientes e fluxos automáticos de processos que possam gerar receita eficiente ou otimizar custos.\nResponda com análises de mercado frias, análise de concorrência conceitual, e sugestões de ferramentas sem código (no-code) ou APIs úteis.",
-      "ativa": false,
-      "icon": "TrendingUp"
-    },
-    {
-      "id": "cos",
-      "nome": "Chief of Staff",
-      "descricao": "Foco em priorização executiva, alinhamento de projetos e gerenciamento de energia.",
-      "prompt_base": "Você é o Chief of Staff (Chefe de Gabinete) do usuário. Seu foco é garantir alinhamento tático-estratégico, gerenciar o tempo e energia dele, e aplicar filtros severos contra distrações.\nAjude o usuário a dizer \"não\" para focar nas 3 maiores alavancas do dia e da semana. Certifique-se de que os hábitos fundamentais estão sendo seguidos.\nTom elegante, calmo, altamente organizado, confiável e coordenativo.",
-      "ativa": false,
-      "icon": "LayoutGrid"
     }
   ],
   "userProfile": {
@@ -79,45 +68,44 @@
     "interesses": [
       "Inteligência Artificial & LLMs",
       "Desenvolvimento SaaS fullstack",
-      "Finanças Pessoais & Alocação Inteligente",
-      "Automações e Fluxos No-code",
-      "Biohacking & Produtividade"
+      "Finanças Pessoais & Alocação Inteligente"
     ],
     "objetivos": [
       "Lançar o LifeOS AI no ProductHunt",
-      "Atingir faturamento recorrente USD 10k/mês com micro-SaaS",
-      "Manter consistência semanal na academia",
-      "Construir um segundo cérebro inteligente de alta fidelidade"
+      "Atingir faturamento recorrente USD 10k/mês com micro-SaaS"
     ],
     "preferencias": [
-      "Tom de voz profissional, executivo e conciso",
-      "Análises baseadas em ROI e eficiência de tempo",
-      "Evitar clichês de autoajuda ou introduções demoradas",
-      "Respostas estruturadas em Markdown"
+      "Tom de voz profissional, executivo e conciso"
     ],
-    "contexto": "Fundador técnico trabalhando em múltiplos projetos de software e focando em maximizar a alavanca de cada hora gasta no dia.",
+    "contexto": "Fundador técnico focado em maximizar a alavanca de tempo.",
     "lifeScore": 82.5
   },
   "salaries": [],
   "creditCards": [
-    {
-      "id": "card_1",
-      "nome": "Nubank Mastercard",
-      "limite": 5000,
-      "dia_fechamento": 28,
-      "dia_vencimento": 5,
-      "cor": "#8b5cf6"
-    },
-    {
-      "id": "card_2",
-      "nome": "XP Visa Infinite",
-      "limite": 8000,
-      "dia_fechamento": 15,
-      "dia_vencimento": 22,
-      "cor": "#1e293b"
-    }
+    { "id": "card_nubank", "nome": "Nubank Mastercard", "limite": 5000, "dia_fechamento": 2, "dia_vencimento": 10, "cor": "#820ad1" },
+    { "id": "card_picpay", "nome": "PicPay Visa", "limite": 4000, "dia_fechamento": 14, "dia_vencimento": 20, "cor": "#11c76f" },
+    { "id": "card_itau", "nome": "Itaú Uniclass", "limite": 6000, "dia_fechamento": 2, "dia_vencimento": 9, "cor": "#ec7000" },
+    { "id": "card_inter", "nome": "Inter Gold", "limite": 4000, "dia_fechamento": 9, "dia_vencimento": 15, "cor": "#f97316" },
+    { "id": "card_santander", "nome": "Santander SX", "limite": 3000, "dia_fechamento": 9, "dia_vencimento": 13, "cor": "#ef4444" },
+    { "id": "card_mercadopago", "nome": "Mercado Pago", "limite": 3000, "dia_fechamento": 5, "dia_vencimento": 10, "cor": "#00aae4" },
+    { "id": "card_nex", "nome": "Nex Infinite", "limite": 5000, "dia_fechamento": 5, "dia_vencimento": 10, "cor": "#3b82f6" }
   ],
-  "cardExpenses": [],
+  "cardExpenses": [
+    { "id": "ce_nubank_may", "valor": 444.52, "categoria": "Fatura", "descricao": "Fatura Nubank", "data": "2026-05-10", "cartao_id": "card_nubank", "quitada": true, "conta_id": "acc_3" },
+    { "id": "ce_picpay_may", "valor": 415.73, "categoria": "Fatura", "descricao": "Fatura PicPay", "data": "2026-05-20", "cartao_id": "card_picpay", "quitada": true, "conta_id": "acc_3" },
+    { "id": "ce_inter_may", "valor": 102.00, "categoria": "Fatura", "descricao": "Fatura Inter", "data": "2026-05-15", "cartao_id": "card_inter", "quitada": true, "conta_id": "acc_3" },
+    { "id": "ce_santander_may", "valor": 85.00, "categoria": "Fatura", "descricao": "Fatura Santander", "data": "2026-05-13", "cartao_id": "card_santander", "quitada": true, "conta_id": "acc_3" },
+    { "id": "ce_mercadopago_may", "valor": 250.00, "categoria": "Fatura", "descricao": "Fatura MercadoPago", "data": "2026-05-10", "cartao_id": "card_mercadopago", "quitada": true, "conta_id": "acc_3" },
+    { "id": "ce_nex_may", "valor": 145.00, "categoria": "Fatura", "descricao": "Fatura Nex", "data": "2026-05-10", "cartao_id": "card_nex", "quitada": true, "conta_id": "acc_3" },
+    
+    { "id": "ce_nubank_jun", "valor": 290.00, "categoria": "Fatura", "descricao": "Fatura Nubank", "data": "2026-06-10", "cartao_id": "card_nubank", "quitada": false },
+    { "id": "ce_picpay_jun", "valor": 400.00, "categoria": "Fatura", "descricao": "Fatura PicPay", "data": "2026-06-20", "cartao_id": "card_picpay", "quitada": false },
+    { "id": "ce_itau_jun", "valor": 135.00, "categoria": "Fatura", "descricao": "Fatura Itaú", "data": "2026-06-09", "cartao_id": "card_itau", "quitada": false },
+    { "id": "ce_inter_jun", "valor": 135.00, "categoria": "Fatura", "descricao": "Fatura Inter", "data": "2026-06-15", "cartao_id": "card_inter", "quitada": false },
+    { "id": "ce_santander_jun", "valor": 136.00, "categoria": "Fatura", "descricao": "Fatura Santander", "data": "2026-06-13", "cartao_id": "card_santander", "quitada": false },
+    { "id": "ce_mercadopago_jun", "valor": 140.00, "categoria": "Fatura", "descricao": "Fatura MercadoPago", "data": "2026-06-10", "cartao_id": "card_mercadopago", "quitada": false },
+    { "id": "ce_nex_jun", "valor": 125.00, "categoria": "Fatura", "descricao": "Fatura Nex", "data": "2026-06-10", "cartao_id": "card_nex", "quitada": false }
+  ],
   "decisions": [],
   "energyLogs": [],
   "briefings": [],
@@ -153,21 +141,14 @@
     { "id": "cat_10", "nome": "Investimentos", "tipo": "receita", "cor": "#eab308" }
   ],
   "accounts": [
-    { "id": "acc_1", "nome": "Carteira", "tipo": "carteira", "saldo_inicial": 500, "saldo_atual": 500, "cor": "#f59e0b" },
-    { "id": "acc_2", "nome": "Santander C.C.", "tipo": "corrente", "saldo_inicial": 3000, "saldo_atual": 3000, "cor": "#ef4444" },
-    { "id": "acc_3", "nome": "NuConta", "tipo": "corrente", "saldo_inicial": 10000, "saldo_atual": 10000, "cor": "#8b5cf6" }
+    { "id": "acc_1", "nome": "Carteira", "tipo": "carteira", "saldo_inicial": 0, "saldo_atual": 0, "cor": "#f59e0b" },
+    { "id": "acc_2", "nome": "Santander C.C.", "tipo": "corrente", "saldo_inicial": 0, "saldo_atual": 0, "cor": "#ef4444" },
+    { "id": "acc_3", "nome": "NuConta", "tipo": "corrente", "saldo_inicial": 0, "saldo_atual": 426.78, "cor": "#8b5cf6" }
   ],
   "tags": [
     { "id": "tag_1", "nome": "Essencial", "cor": "#64748b" },
     { "id": "tag_2", "nome": "Lazer", "cor": "#ec4899" },
     { "id": "tag_3", "nome": "Trabalho", "cor": "#3b82f6" },
     { "id": "tag_4", "nome": "Recorrente", "cor": "#10b981" }
-  ],
-  "reminders": [],
-  "goals": [],
-  "habits": [],
-  "projects": [],
-  "notes": [],
-  "ideas": [],
-  "memories": []
+  ]
 }

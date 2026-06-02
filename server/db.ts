@@ -125,9 +125,9 @@ const DEFAULT_CATEGORIES: Category[] = [
 ];
 
 const DEFAULT_ACCOUNTS: Account[] = [
-  { id: 'acc_1', nome: 'Carteira', tipo: 'carteira', saldo_inicial: 500, saldo_atual: 500, cor: '#f59e0b' },
-  { id: 'acc_2', nome: 'Santander C.C.', tipo: 'corrente', saldo_inicial: 3000, saldo_atual: 3000, cor: '#ef4444' },
-  { id: 'acc_3', nome: 'NuConta', tipo: 'corrente', saldo_inicial: 10000, saldo_atual: 10000, cor: '#8b5cf6' }
+  { id: 'acc_1', nome: 'Carteira', tipo: 'carteira', saldo_inicial: 0, saldo_atual: 0, cor: '#f59e0b' },
+  { id: 'acc_2', nome: 'Santander C.C.', tipo: 'corrente', saldo_inicial: 0, saldo_atual: 0, cor: '#ef4444' },
+  { id: 'acc_3', nome: 'NuConta', tipo: 'corrente', saldo_inicial: 0, saldo_atual: 0, cor: '#8b5cf6' }
 ];
 
 const DEFAULT_TAGS: Tag[] = [
@@ -138,8 +138,13 @@ const DEFAULT_TAGS: Tag[] = [
 ];
 
 const DEFAULT_CREDIT_CARDS = [
-  { id: 'card_1', nome: 'Nubank Mastercard', limite: 5000, dia_fechamento: 28, dia_vencimento: 5, cor: '#8b5cf6' },
-  { id: 'card_2', nome: 'XP Visa Infinite', limite: 8000, dia_fechamento: 15, dia_vencimento: 22, cor: '#1e293b' }
+  { id: 'card_nubank', nome: 'Nubank Mastercard', limite: 5000, dia_fechamento: 2, dia_vencimento: 10, cor: '#820ad1' },
+  { id: 'card_picpay', nome: 'PicPay Visa', limite: 4000, dia_fechamento: 14, dia_vencimento: 20, cor: '#11c76f' },
+  { id: 'card_itau', nome: 'Itaú Uniclass', limite: 6000, dia_fechamento: 2, dia_vencimento: 9, cor: '#ec7000' },
+  { id: 'card_inter', nome: 'Inter Gold', limite: 4000, dia_fechamento: 9, dia_vencimento: 15, cor: '#f97316' },
+  { id: 'card_santander', nome: 'Santander SX', limite: 3000, dia_fechamento: 9, dia_vencimento: 13, cor: '#ef4444' },
+  { id: 'card_mercadopago', nome: 'Mercado Pago', limite: 3000, dia_fechamento: 5, dia_vencimento: 10, cor: '#00aae4' },
+  { id: 'card_nex', nome: 'Nex Infinite', limite: 5000, dia_fechamento: 5, dia_vencimento: 10, cor: '#3b82f6' }
 ];
 
 const DEFAULT_STATE: DatabaseState = {

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Briefcase, Rocket, GraduationCap, CheckSquare, Compass, TrendingUp, 
   LayoutGrid, User, Sparkles, Plus, Trash2, Settings, Edit3, Key, Eye, EyeOff, Check, Send,
@@ -325,10 +325,14 @@ export default function ProfileView({ data, onRefresh, theme = 'light' }: Profil
     }
     setIsRegisteringWebhook(true);
     try {
-      const res = await fetch('/api/telegram/register-webhook', { method: 'POST' });
+      const res = await fetch('/api/telegram/register-webhook', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appUrl: window.location.origin })
+      });
       if (res.ok) {
         const body = await res.json();
-        showToast(`Webhook Telegram registrado! Bot: @${body.username}`, 'success');
+        showToast(body.message || 'Webhook Telegram registrado com sucesso!', 'success');
       } else {
         const errBody = await res.json();
         showToast(`Falha: ${errBody.error || 'Erro desconhecido'}`, 'error');

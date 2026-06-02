@@ -1180,7 +1180,7 @@ async function startServer() {
       if (!profile.telegramBotToken) {
         return res.status(400).json({ error: 'Token do Telegram Bot não configurado.' });
       }
-      const appUrl = process.env.APP_URL || 'http://localhost:3000';
+      const appUrl = req.body.appUrl || process.env.APP_URL || 'http://localhost:3000';
       const webhookUrl = `${appUrl}/api/telegram/real-webhook`;
       
       const registerUrl = `https://api.telegram.org/bot${profile.telegramBotToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`;
