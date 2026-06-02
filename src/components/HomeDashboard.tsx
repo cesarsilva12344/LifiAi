@@ -814,7 +814,7 @@ export default function HomeDashboard({ data, onRefresh, theme = 'light' }: Home
             </p>
 
             <div className="h-44">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <AreaChart data={predictionData}>
                   <defs>
                     <linearGradient id="colorSaldo" x1="0" y1="0" x2="0" y2="1">

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   AreaChart, Area
@@ -232,7 +232,7 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
             <span className={`text-[9px] font-mono ${c.subText}`}>Unidade: BRL</span>
           </div>
           <div className="h-64 mt-2">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
               <BarChart data={mainFlowChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke={c.chartGrid} />
                 <XAxis dataKey="name" stroke="#6b7280" fontSize={11} />
