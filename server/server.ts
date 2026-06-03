@@ -1216,12 +1216,22 @@ async function startServer() {
       const token = profile.telegramBotToken;
       const chatId = profile.telegramChatId;
       
+      // Fetch webhook info from Telegram
+      let webhookInfo = null;
+      try {
+        const infoRes = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+        webhookInfo = await infoRes.json();
+      } catch (infoErr: any) {
+        webhookInfo = { error: infoErr.message };
+      }
+
       const debugInfo = {
         hasToken: !!token,
         tokenLength: token ? token.length : 0,
         chatId: chatId || null,
         envBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
         envChatId: !!process.env.TELEGRAM_CHAT_ID,
+        webhookInfo
       };
 
       if (!token) {
@@ -1282,9 +1292,11 @@ async function startServer() {
       console.log('[Telegram Webhook] Bot token exists:', !!profile.telegramBotToken);
       console.log('[Telegram Webhook] Profile Chat ID configured:', profile.telegramChatId);
       
-      // Auto-bind telegramChatId if not configured yet
-      if (!profile.telegramChatId) {
-        console.log(`[Telegram Bot] No telegramChatId set. Auto-binding to chatId: ${chatId}`);
+      // Auto-bind telegramChatId if not configured or if it contains an invalid format (non-numeric username)
+      const isValidChatId = (id: string | undefined) => id && /^-?\d+$/.test(id.trim());
+      
+      if (!isValidChatId(profile.telegramChatId)) {
+        console.log(`[Telegram Bot] No valid telegramChatId set ("${profile.telegramChatId}"). Auto-binding to chatId: ${chatId}`);
         updateProfile({ telegramChatId: String(chatId) });
         profile.telegramChatId = String(chatId);
       } else if (String(chatId) !== String(profile.telegramChatId)) {

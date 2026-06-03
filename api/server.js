@@ -244,13 +244,16 @@ function ensureStateIntegrity(state) {
   if (!state.tags || state.tags.length === 0) state.tags = DEFAULT_TAGS;
   if (!state.creditCards || state.creditCards.length === 0) state.creditCards = DEFAULT_CREDIT_CARDS;
   if (state.userProfile) {
+    const isValidChatId = (id) => id && /^-?\d+$/.test(id.trim());
+    const envChatId = process.env.TELEGRAM_CHAT_ID;
+    const dbChatId = state.userProfile.telegramChatId;
     state.userProfile = {
       ...state.userProfile,
       geminiApiKey: process.env.GEMINI_API_KEY || state.userProfile.geminiApiKey || "",
       deepseekApiKey: process.env.DEEPSEEK_API_KEY || state.userProfile.deepseekApiKey || "",
       qwenApiKey: process.env.QWEN_API_KEY || state.userProfile.qwenApiKey || "",
       telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || state.userProfile.telegramBotToken || "",
-      telegramChatId: process.env.TELEGRAM_CHAT_ID || state.userProfile.telegramChatId || ""
+      telegramChatId: (isValidChatId(envChatId) ? envChatId : "") || (isValidChatId(dbChatId) ? dbChatId : "") || ""
     };
   }
   return state;
@@ -3488,12 +3491,20 @@ async function startServer() {
       const profile = getProfile();
       const token = profile.telegramBotToken;
       const chatId = profile.telegramChatId;
+      let webhookInfo = null;
+      try {
+        const infoRes = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
+        webhookInfo = await infoRes.json();
+      } catch (infoErr) {
+        webhookInfo = { error: infoErr.message };
+      }
       const debugInfo = {
         hasToken: !!token,
         tokenLength: token ? token.length : 0,
         chatId: chatId || null,
         envBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
-        envChatId: !!process.env.TELEGRAM_CHAT_ID
+        envChatId: !!process.env.TELEGRAM_CHAT_ID,
+        webhookInfo
       };
       if (!token) {
         return res.status(400).json({
@@ -3547,8 +3558,9 @@ Seu servidor e o Bot est\xE3o se comunicando com sucesso.
       console.log("[Telegram Webhook] Received message:", text, "from chatId:", chatId);
       console.log("[Telegram Webhook] Bot token exists:", !!profile.telegramBotToken);
       console.log("[Telegram Webhook] Profile Chat ID configured:", profile.telegramChatId);
-      if (!profile.telegramChatId) {
-        console.log(`[Telegram Bot] No telegramChatId set. Auto-binding to chatId: ${chatId}`);
+      const isValidChatId = (id) => id && /^-?\d+$/.test(id.trim());
+      if (!isValidChatId(profile.telegramChatId)) {
+        console.log(`[Telegram Bot] No valid telegramChatId set ("${profile.telegramChatId}"). Auto-binding to chatId: ${chatId}`);
         updateProfile({ telegramChatId: String(chatId) });
         profile.telegramChatId = String(chatId);
       } else if (String(chatId) !== String(profile.telegramChatId)) {

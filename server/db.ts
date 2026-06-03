@@ -459,13 +459,17 @@ export function ensureStateIntegrity(state: DatabaseState): DatabaseState {
   if (!state.creditCards || state.creditCards.length === 0) state.creditCards = DEFAULT_CREDIT_CARDS;
   
   if (state.userProfile) {
+    const isValidChatId = (id: string | undefined) => id && /^-?\d+$/.test(id.trim());
+    const envChatId = process.env.TELEGRAM_CHAT_ID;
+    const dbChatId = state.userProfile.telegramChatId;
+
     state.userProfile = {
       ...state.userProfile,
       geminiApiKey: process.env.GEMINI_API_KEY || state.userProfile.geminiApiKey || '',
       deepseekApiKey: process.env.DEEPSEEK_API_KEY || state.userProfile.deepseekApiKey || '',
       qwenApiKey: process.env.QWEN_API_KEY || state.userProfile.qwenApiKey || '',
       telegramBotToken: process.env.TELEGRAM_BOT_TOKEN || state.userProfile.telegramBotToken || '',
-      telegramChatId: process.env.TELEGRAM_CHAT_ID || state.userProfile.telegramChatId || ''
+      telegramChatId: (isValidChatId(envChatId) ? envChatId : '') || (isValidChatId(dbChatId) ? dbChatId : '') || ''
     };
   }
   return state;
