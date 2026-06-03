@@ -1209,6 +1209,62 @@ async function startServer() {
     }
   });
 
+  // Diagnostic test endpoint for Telegram Bot
+  app.get('/api/test-telegram', async (req, res) => {
+    try {
+      const profile = getProfile();
+      const token = profile.telegramBotToken;
+      const chatId = profile.telegramChatId;
+      
+      const debugInfo = {
+        hasToken: !!token,
+        tokenLength: token ? token.length : 0,
+        chatId: chatId || null,
+        envBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
+        envChatId: !!process.env.TELEGRAM_CHAT_ID,
+      };
+
+      if (!token) {
+        return res.status(400).json({ 
+          error: 'Token do Telegram Bot não configurado (vazio).',
+          debugInfo
+        });
+      }
+
+      const testChatId = req.query.chat_id as string || chatId;
+
+      if (!testChatId) {
+        return res.status(400).json({ 
+          error: 'Chat ID do Telegram não configurado (vazio) e nenhum query param chat_id foi fornecido.',
+          debugInfo
+        });
+      }
+
+      const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+      const response = await fetch(telegramUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: testChatId,
+          text: `🔔 **Teste de Diagnóstico do LifeOS AI!**\nSeu servidor e o Bot estão se comunicando com sucesso.\n\n⚙️ **Informações:**\n- Chat ID testado: \`${testChatId}\``,
+          parse_mode: 'Markdown'
+        })
+      });
+
+      const data = await response.json() as any;
+      res.json({
+        success: data.ok,
+        telegramResponse: data,
+        debugInfo
+      });
+    } catch (err: any) {
+      res.status(500).json({ 
+        error: 'Erro no pipeline de teste do Telegram.', 
+        message: err.message 
+      });
+    }
+  });
+
   // Real Telegram Webhook
   app.post('/api/telegram/real-webhook', async (req, res) => {
     try {
@@ -1222,6 +1278,9 @@ async function startServer() {
       const text = message.text;
       
       const profile = getProfile();
+      console.log('[Telegram Webhook] Received message:', text, 'from chatId:', chatId);
+      console.log('[Telegram Webhook] Bot token exists:', !!profile.telegramBotToken);
+      console.log('[Telegram Webhook] Profile Chat ID configured:', profile.telegramChatId);
       
       // Auto-bind telegramChatId if not configured yet
       if (!profile.telegramChatId) {
