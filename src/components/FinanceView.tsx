@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { DatabaseState, Expense, Income } from '../types';
 import { showToast } from './Toast';
+import MobillsView from './MobillsView';
 
 interface FinanceViewProps {
   data: DatabaseState;
@@ -19,6 +20,7 @@ interface FinanceViewProps {
 export default function FinanceView({ data, onRefresh, theme = 'light' }: FinanceViewProps) {
   const [activeLedger, setActiveLedger] = useState<'all' | 'expense' | 'income'>('all');
   const [timeFilter, setTimeFilter] = useState<'all' | 'week' | 'month' | 'year'>('all');
+  const [viewMode, setViewMode] = useState<'standard' | 'mobills'>('standard');
 
   // Filter incomes and expenses based on selected period
   const getFilteredItems = () => {
@@ -123,6 +125,45 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
 
   const c = theme === 'dark' ? darkColors : lightColors;
 
+  if (viewMode === 'mobills') {
+    return (
+      <div className="space-y-6">
+        <div className={`p-4 md:p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${c.cardBg} shadow-sm`}>
+          <div>
+            <span className="text-[9px] font-mono font-black text-blue-500 tracking-wider uppercase">Contabilidade Consolidada</span>
+            <h2 className={`text-lg font-black tracking-tight mt-0.5 ${c.titleText}`}>Lançamentos & Fluxo de Caixa</h2>
+            <p className={`text-xs mt-0.5 ${c.subText}`}>Consulte o histórico transacional relacional, gerencie categorias e filtre por períodos.</p>
+          </div>
+
+          <div className="flex gap-0.5 rounded-xl p-0.5 select-none text-[11px] border bg-slate-500/5 border-slate-500/10 self-start md:self-auto">
+            <button
+              onClick={() => setViewMode('standard')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer select-none ${
+                viewMode === 'standard' 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Padrão
+            </button>
+            <button
+              onClick={() => setViewMode('mobills')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer select-none ${
+                viewMode === 'mobills' 
+                  ? 'bg-violet-600 text-white shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Visualização Mobills
+            </button>
+          </div>
+        </div>
+
+        <MobillsView data={data} onRefresh={onRefresh} theme={theme} />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       
@@ -134,28 +175,54 @@ export default function FinanceView({ data, onRefresh, theme = 'light' }: Financ
           <p className={`text-xs mt-0.5 ${c.subText}`}>Consulte o histórico transacional relacional, gerencie categorias e filtre por períodos.</p>
         </div>
 
-        {/* Period filter buttons */}
-        <div className={`flex gap-1 rounded-xl p-0.5 select-none text-xs border self-start md:self-auto ${
-          theme === 'dark' ? 'bg-[#090a0d] border-[#1d202a]' : 'bg-slate-100 border-slate-200'
-        }`}>
-          {[
-            { id: 'all', label: 'Tudo' },
-            { id: 'week', label: 'Semana' },
-            { id: 'month', label: 'Mês' },
-            { id: 'year', label: 'Ano' },
-          ].map((item) => (
+        <div className="flex flex-wrap items-center gap-3 self-start md:self-auto">
+          {/* View Toggler */}
+          <div className="flex gap-0.5 rounded-xl p-0.5 select-none text-[11px] border bg-slate-500/5 border-slate-500/10">
             <button
-              key={item.id}
-              onClick={() => setTimeFilter(item.id as any)}
+              onClick={() => setViewMode('standard')}
               className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer select-none ${
-                timeFilter === item.id 
+                viewMode === 'standard' 
                   ? 'bg-blue-600 text-white shadow-sm' 
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              {item.label}
+              Padrão
             </button>
-          ))}
+            <button
+              onClick={() => setViewMode('mobills')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer select-none ${
+                viewMode === 'mobills' 
+                  ? 'bg-violet-600 text-white shadow-sm' 
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              Visualização Mobills
+            </button>
+          </div>
+
+          {/* Period filter buttons */}
+          <div className={`flex gap-1 rounded-xl p-0.5 select-none text-xs border ${
+            theme === 'dark' ? 'bg-[#090a0d] border-[#1d202a]' : 'bg-slate-100 border-slate-200'
+          }`}>
+            {[
+              { id: 'all', label: 'Tudo' },
+              { id: 'week', label: 'Semana' },
+              { id: 'month', label: 'Mês' },
+              { id: 'year', label: 'Ano' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setTimeFilter(item.id as any)}
+                className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer select-none ${
+                  timeFilter === item.id 
+                    ? 'bg-blue-600 text-white shadow-sm' 
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

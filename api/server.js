@@ -1515,60 +1515,235 @@ init_provider();
 
 // services/ai/router.ts
 init_provider();
-var ROUTER_SYSTEM_PROMPT = `Voc\xEA \xE9 o AI Router do LifeOS \u2014 um motor de classifica\xE7\xE3o de inten\xE7\xE3o de alt\xEDssima precis\xE3o em portugu\xEAs brasileiro.
+init_db();
 
-Sua \xDANICA fun\xE7\xE3o \xE9 analisar o texto do usu\xE1rio e retornar um JSON com:
-- "intent": categoria da mensagem
-- "extracted_data": dados estruturados extra\xEDdos
-- "explanation": 1 frase curta explicando a classifica\xE7\xE3o
-- "confidence": n\xFAmero entre 0 e 1
+// services/ai/prompt-registry.ts
+var ROUTER_CLASSIFY = (today2, accountsList, cardsList, categoriesList) => `Voc\xEA \xE9 o AI Router do LifeOS \u2014 motor de classifica\xE7\xE3o de inten\xE7\xE3o de alt\xEDssima precis\xE3o em portugu\xEAs brasileiro.
+
+Sua \xDANICA fun\xE7\xE3o \xE9 analisar o texto do usu\xE1rio e retornar um JSON v\xE1lido com a classifica\xE7\xE3o e dados estruturados.
+
+Data de hoje: ${today2}
+
+LISTA DE DADOS REAIS DO SISTEMA (use para ligar nomes a IDs nos campos conta_id, cartao_id, categoria_id):
+---
+CONTAS BANC\xC1RIAS DISPON\xCDVEIS:
+${accountsList || "Nenhuma conta cadastrada"}
+
+CART\xD5ES DE CR\xC9DITO DISPON\xCDVEIS:
+${cardsList || "Nenhum cart\xE3o cadastrado"}
+
+CATEGORIAS CADASTRADAS:
+${categoriesList || "Nenhuma categoria cadastrada"}
+---
+
+FORMATO DE RETORNO (Estritamente JSON v\xE1lido):
+{
+  "intent": "<categoria>",
+  "extracted_data": { <dados estruturados de acordo com as regras abaixo> },
+  "explanation": "<1 frase curta explicando a classifica\xE7\xE3o>",
+  "confidence": <n\xFAmero float de 0.0 a 1.0>
+}
 
 CATEGORIAS DE INTENT:
-- "expense" \u2192 despesas, gastos tradicionais, compras no d\xE9bito/dinheiro
-- "income"  \u2192 receitas, ganhos, sal\xE1rio, pix recebido
-- "task"    \u2192 tarefas, afazeres, to-dos, a\xE7\xF5es futuras
-- "reminder" \u2192 lembretes com data/hora espec\xEDfica
-- "goal"    \u2192 metas com progresso num\xE9rico
-- "habit"   \u2192 check-in em h\xE1bito ou rotina di\xE1ria
-- "project" \u2192 cria\xE7\xE3o de novo projeto
-- "note"    \u2192 anota\xE7\xF5es, aprendizados, di\xE1rios
-- "idea"    \u2192 ideias criativas para avaliar depois
-- "memory"  \u2192 fatos importantes de vida pessoal/profissional
-- "decision" \u2192 decis\xF5es importantes e o que espera dela
-- "meditation" \u2192 registrar uma sess\xE3o de medita\xE7\xE3o, respira\xE7\xE3o ou mindfulness
-- "mood" \u2192 registrar humor (1 a 10) e energia f\xEDsica/mental (1 a 10)
-- "debt" \u2192 registrar uma d\xEDvida com credor e valor original
-- "debt_payment" \u2192 pagar/quitar uma d\xEDvida
-- "budget" \u2192 definir teto or\xE7ament\xE1rio mensal por categoria
-- "chat"    \u2192 conversa, pergunta direta ao assistente
+- "expense"       \u2192 despesas, gastos, pagamentos de compras no d\xE9bito/dinheiro ou cart\xE3o de cr\xE9dito
+- "income"        \u2192 receitas, ganhos, sal\xE1rio, pix recebido, aportes
+- "task"          \u2192 tarefas, afazeres, to-dos, a\xE7\xF5es futuras
+- "reminder"      \u2192 lembretes com data/hora espec\xEDfica
+- "goal"          \u2192 metas com progresso num\xE9rico
+- "habit"         \u2192 check-in em h\xE1bito ou rotina
+- "project"       \u2192 cria\xE7\xE3o de novo projeto
+- "note"          \u2192 anota\xE7\xF5es, aprendizados, di\xE1rios, fatos soltos
+- "idea"          \u2192 ideias de neg\xF3cios, projetos ou lampejos de criatividade
+- "memory"        \u2192 mem\xF3rias pessoais/profissionais importantes
+- "decision"      \u2192 decis\xF5es importantes e resultados esperados
+- "meditation"    \u2192 registros de medita\xE7\xE3o, respira\xE7\xE3o, mindfulness
+- "mood"          \u2192 registros de humor e n\xEDvel de energia
+- "debt"          \u2192 cadastro de d\xEDvida/empr\xE9stimo com credor
+- "debt_payment"  \u2192 pagamento de uma d\xEDvida
+- "budget"        \u2192 definir limite de or\xE7amento mensal
+- "chat"          \u2192 conversa, d\xFAvidas ou comandos gerais
 
-REGRAS DE EXTRA\xC7\xC3O:
-1. expense/income \u2192 "valor" (n\xFAmero), "categoria" (1 palavra), "descricao", "data" (YYYY-MM-DD, hoje se omitida)
-2. task \u2192 "titulo", "prioridade" (high/medium/low), "prazo" (YYYY-MM-DD, amanh\xE3 se omitido), "status": "pending"
-3. reminder \u2192 "titulo", "data_hora" (ISO string), "status": "active"
-4. goal \u2192 "titulo", "meta" (n\xFAmero alvo), "progresso" (0), "prazo" (YYYY-MM-DD)
-5. habit \u2192 "nome", "frequencia" (diaria/semanal)
-6. note/memory \u2192 "conteudo" (texto completo), "tags" (array de palavras-chave)
-7. idea \u2192 "titulo" (nome curto), "conteudo" (detalhes), "score" (1-10 potencial)
-8. decision \u2192 "title", "context", "expected_outcome", "review_at" (YYYY-MM-DD)
-9. meditation \u2192 "duration_seconds" (n\xFAmero), "type" (breathing/guided/gratitude/visualization/body_scan), "mood_before" (n\xFAmero), "mood_after" (n\xFAmero)
-10. mood \u2192 "mood_score" (n\xFAmero), "energy_level" (n\xFAmero), "context" (texto)
-11. debt \u2192 "descricao", "credor", "valor_original" (n\xFAmero), "vencimento" (YYYY-MM-DD)
-12. debt_payment \u2192 "debt_id", "valor_pago" (n\xFAmero)
-13. budget \u2192 "category_id", "valor_planejado" (n\xFAmero), "mes" (n\xFAmero), "ano" (n\xFAmero)
+REGRAS DE EXTRA\xC7\xC3O & MAPEAMENTO:
+1. "expense" (Despesa):
+   - "valor": n\xFAmero float.
+   - "descricao": texto explicativo curto.
+   - "categoria": nome curto da categoria (preferencialmente uma das listadas acima, ex: "Alimenta\xE7\xE3o", "Transporte").
+   - "categoria_id": ID da categoria correspondente (se encontrada na lista).
+   - "data": "YYYY-MM-DD" (se omitido, use a data de hoje: ${today2}).
+   - Se o texto indicar d\xE9bito em conta/PIX/dinheiro, mapear "conta_id" para o ID da conta correspondente.
+   - Se o texto indicar uso de cart\xE3o de cr\xE9dito, mapear "cartao_id" para o ID do cart\xE3o correspondente e definir "quitada" como false.
+2. "income" (Receita):
+   - "valor": n\xFAmero float.
+   - "descricao": texto explicativo.
+   - "categoria": nome curto da categoria (ex: "Sal\xE1rio").
+   - "categoria_id": ID correspondente da lista de categorias se aplic\xE1vel.
+   - "conta_id": ID da conta onde o dinheiro entrou (se especificado).
+   - "data": "YYYY-MM-DD" (hoje se omitido).
+3. "task":
+   - "titulo": descri\xE7\xE3o da tarefa.
+   - "prioridade": "high" (se urgente/cr\xEDtico), "medium" (padr\xE3o), ou "low".
+   - "prazo": "YYYY-MM-DD" (amanh\xE3 se omitido).
+   - "status": "pending".
+4. "reminder":
+   - "titulo": o que lembrar.
+   - "data_hora": formato ISO string (calculado com base na data de hoje).
+   - "status": "active".
+5. "goal":
+   - "titulo", "meta" (alvo num\xE9rico), "progresso" (0), "prazo" (YYYY-MM-DD).
+6. "habit":
+   - "nome", "frequencia" ("diaria" ou "semanal").
+7. "note" / "memory":
+   - "conteudo" (texto completo), "tags" (array de strings).
+8. "idea":
+   - "titulo", "conteudo", "score" (1-10).
+9. "meditation":
+   - "duration_seconds", "type" ("breathing" | "guided" | "gratitude" | "visualization" | "body_scan"), "mood_before" (1-10), "mood_after" (1-10).
+10. "mood":
+    - "mood_score" (1-10), "energy_level" (1-10), "context" (descri\xE7\xE3o de como se sente).
 
-Retorne APENAS o JSON, sem markdown, sem explica\xE7\xE3o fora do JSON.`;
+FEW-SHOT EXAMPLES (Exemplos de classifica\xE7\xE3o):
+---
+Exemplo 1 (Despesa em conta):
+Input: "Gastei R$ 50 no Uber usando NuConta"
+Output:
+{
+  "intent": "expense",
+  "extracted_data": {
+    "valor": 50.00,
+    "categoria": "Transporte",
+    "categoria_id": "cat_2",
+    "descricao": "Uber",
+    "data": "${today2}",
+    "conta_id": "acc_3",
+    "quitada": true
+  },
+  "explanation": "Despesa de Uber de R$ 50 debitada da NuConta.",
+  "confidence": 0.98
+}
+
+Exemplo 2 (Despesa em cart\xE3o):
+Input: "Comprei livro de R$ 85.00 no cart\xE3o de cr\xE9dito Santander"
+Output:
+{
+  "intent": "expense",
+  "extracted_data": {
+    "valor": 85.00,
+    "categoria": "Lazer",
+    "categoria_id": "cat_5",
+    "descricao": "Livro",
+    "data": "${today2}",
+    "cartao_id": "card_santander",
+    "quitada": false
+  },
+  "explanation": "Despesa com livro de R$ 85 lan\xE7ada no cart\xE3o Santander SX.",
+  "confidence": 0.97
+}
+
+Exemplo 3 (Receita):
+Input: "Recebi R$ 1500 de freelance hoje"
+Output:
+{
+  "intent": "income",
+  "extracted_data": {
+    "valor": 1500.00,
+    "categoria": "Freelance",
+    "categoria_id": "cat_9",
+    "descricao": "Freelance",
+    "data": "${today2}",
+    "quitada": true
+  },
+  "explanation": "Recebimento de freelance de R$ 1500.",
+  "confidence": 0.95
+}
+---
+
+Retorne estritamente um JSON v\xE1lido no formato especificado, sem blocos de texto adicionais, markdown ou explica\xE7\xF5es fora do JSON.`;
+var PERSONA_RESPOND = (persona, contextBlock, history) => `Voc\xEA \xE9: ${persona.nome}
+Descri\xE7\xE3o: ${persona.descricao}
+
+PERSONALIDADE \u2014 siga \xE0 risca:
+${persona.prompt_base}
+
+${contextBlock}
+
+${history ? `HIST\xD3RICO RECENTE:
+${history}
+` : ""}REGRAS:
+- Responda em portugu\xEAs brasileiro, tom natural
+- Use os dados do contexto \u2014 nunca invente n\xFAmeros
+- M\xE1ximo 3 par\xE1grafos, direto ao ponto
+- Emojis com modera\xE7\xE3o`;
+var CONTEXT_BLOCK = (data) => `\u2550\u2550\u2550 CONTEXTO DO SISTEMA \u2550\u2550\u2550
+
+\u{1F464} PERFIL: ${data.nome}
+   Interesses: ${data.interesses.slice(0, 3).join(", ")}
+   Objetivos: ${data.objetivos.slice(0, 2).join("; ")}
+
+\u{1F4B0} FINANCEIRO:
+   Receitas: R$ ${data.totalIncome.toFixed(2)} | Despesas: R$ ${data.totalExpenses.toFixed(2)} | Saldo: R$ ${data.balance.toFixed(2)}
+   Maior gasto: ${data.topCategory}
+
+\u{1F4CB} TAREFAS PENDENTES (${data.pendingTasks.length}):
+${data.pendingTasks.slice(0, 5).map((t) => `   \u2022 [${t.prioridade.toUpperCase()}] ${t.titulo} (${t.prazo})`).join("\n") || "   Nenhuma"}
+
+\u{1F3AF} METAS (${data.goals.length}):
+${data.goals.slice(0, 3).map((g) => `   \u2022 ${g.titulo}: ${g.progresso}/${g.meta} \u2014 prazo ${g.prazo}`).join("\n") || "   Nenhuma"}
+
+\u{1F525} H\xC1BITOS:
+${data.habits.slice(0, 4).map((h) => `   \u2022 ${h.nome} (${h.streak}d streak)`).join("\n") || "   Nenhum"}
+
+\u{1F5C2}\uFE0F PROJETOS ATIVOS:
+${data.projects.filter((p) => p.status !== "completed").slice(0, 3).map((p) => `   \u2022 ${p.nome} ${p.progresso}%`).join("\n") || "   Nenhum"}
+${data.memories.length > 0 ? `
+\u{1F9E0} MEM\xD3RIAS RELEVANTES:
+${data.memories.slice(0, 3).map((m) => `   \u2022 ${m}`).join("\n")}` : ""}${data.notes.length > 0 ? `
+\u{1F4DD} ANOTA\xC7\xD5ES RECENTES:
+${data.notes.slice(0, 3).map((n) => `   \u2022 ${n}`).join("\n")}` : ""}\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550`;
+var INSIGHT_DAILY = () => `Voc\xEA \xE9 um consultor executivo pessoal analisando dados reais do usu\xE1rio.
+Gere exatamente 3 insights curtos e acion\xE1veis em portugu\xEAs.
+Retorne APENAS um JSON array: ["insight 1", "insight 2", "insight 3"]
+Cada insight: m\xE1ximo 2 frases. Espec\xEDfico, com n\xFAmeros quando poss\xEDvel.`;
+var INSIGHT_FINANCIAL = (nome) => `Voc\xEA \xE9 o CFO pessoal de ${nome}.
+Gere um relat\xF3rio financeiro executivo em portugu\xEAs (m\xE1ximo 4 par\xE1grafos).
+Seja espec\xEDfico com n\xFAmeros reais. Identifique padr\xF5es. D\xEA 2 recomenda\xE7\xF5es acion\xE1veis.`;
+var MEMORY_EXTRACT = () => `Transcreva ou analise este conte\xFAdo em portugu\xEAs brasileiro.
+Retorne APENAS o texto extra\xEDdo ou transcrito, sem explica\xE7\xF5es.`;
+var MEMORY_OCR = () => `Analise esta imagem.
+Se for nota fiscal, recibo ou comprovante: retorne JSON:
+{ "isReceipt": true, "valor": <number>, "descricao": "<string>", "data": "<YYYY-MM-DD>", "text": "<texto completo>" }
+Se n\xE3o for recibo: retorne JSON:
+{ "isReceipt": false, "text": "<texto ou descri\xE7\xE3o da imagem>" }
+Retorne APENAS o JSON, sem markdown.`;
+
+// services/ai/router.ts
 async function routeMessage(text) {
   const today2 = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
-  const tomorrow = new Date(Date.now() + 864e5).toISOString().split("T")[0];
-  const userMessage = `Data de hoje: ${today2}. Texto para classificar: "${text}"`;
+  const userMessage = `Texto para classificar: "${text}"`;
+  let accountsList = "";
+  let cardsList = "";
+  let categoriesList = "";
+  try {
+    const db = readDatabase();
+    if (db.accounts && db.accounts.length > 0) {
+      accountsList = db.accounts.map((a) => `- Nome: "${a.nome}", ID: "${a.id}", Tipo: "${a.tipo}"`).join("\n");
+    }
+    if (db.creditCards && db.creditCards.length > 0) {
+      cardsList = db.creditCards.map((c) => `- Nome: "${c.nome}", ID: "${c.id}"`).join("\n");
+    }
+    if (db.categories && db.categories.length > 0) {
+      categoriesList = db.categories.map((c) => `- Nome: "${c.nome}", ID: "${c.id}", Tipo: "${c.tipo}"`).join("\n");
+    }
+  } catch (dbErr) {
+    console.warn("[Router] Erro ao ler banco para mapear entidades no prompt:", dbErr.message);
+  }
+  const systemPrompt = ROUTER_CLASSIFY(today2, accountsList, cardsList, categoriesList);
   try {
     const provider = getProvider();
     if (!provider.isAvailable()) {
       console.warn("[Router] Provedor IA indispon\xEDvel \u2014 usando fallback heur\xEDstico.");
       return heuristicFallback(text, today2);
     }
-    const result = await provider.chatJSON(ROUTER_SYSTEM_PROMPT, userMessage);
+    const result = await provider.chatJSON(systemPrompt, userMessage);
     return {
       intent: result.intent || "note",
       extracted_data: result.extracted_data || {},
@@ -1692,66 +1867,6 @@ init_action();
 
 // services/engine/context.ts
 init_db();
-
-// services/ai/prompt-registry.ts
-var PERSONA_RESPOND = (persona, contextBlock, history) => `Voc\xEA \xE9: ${persona.nome}
-Descri\xE7\xE3o: ${persona.descricao}
-
-PERSONALIDADE \u2014 siga \xE0 risca:
-${persona.prompt_base}
-
-${contextBlock}
-
-${history ? `HIST\xD3RICO RECENTE:
-${history}
-` : ""}REGRAS:
-- Responda em portugu\xEAs brasileiro, tom natural
-- Use os dados do contexto \u2014 nunca invente n\xFAmeros
-- M\xE1ximo 3 par\xE1grafos, direto ao ponto
-- Emojis com modera\xE7\xE3o`;
-var CONTEXT_BLOCK = (data) => `\u2550\u2550\u2550 CONTEXTO DO SISTEMA \u2550\u2550\u2550
-
-\u{1F464} PERFIL: ${data.nome}
-   Interesses: ${data.interesses.slice(0, 3).join(", ")}
-   Objetivos: ${data.objetivos.slice(0, 2).join("; ")}
-
-\u{1F4B0} FINANCEIRO:
-   Receitas: R$ ${data.totalIncome.toFixed(2)} | Despesas: R$ ${data.totalExpenses.toFixed(2)} | Saldo: R$ ${data.balance.toFixed(2)}
-   Maior gasto: ${data.topCategory}
-
-\u{1F4CB} TAREFAS PENDENTES (${data.pendingTasks.length}):
-${data.pendingTasks.slice(0, 5).map((t) => `   \u2022 [${t.prioridade.toUpperCase()}] ${t.titulo} (${t.prazo})`).join("\n") || "   Nenhuma"}
-
-\u{1F3AF} METAS (${data.goals.length}):
-${data.goals.slice(0, 3).map((g) => `   \u2022 ${g.titulo}: ${g.progresso}/${g.meta} \u2014 prazo ${g.prazo}`).join("\n") || "   Nenhuma"}
-
-\u{1F525} H\xC1BITOS:
-${data.habits.slice(0, 4).map((h) => `   \u2022 ${h.nome} (${h.streak}d streak)`).join("\n") || "   Nenhum"}
-
-\u{1F5C2}\uFE0F PROJETOS ATIVOS:
-${data.projects.filter((p) => p.status !== "completed").slice(0, 3).map((p) => `   \u2022 ${p.nome} ${p.progresso}%`).join("\n") || "   Nenhum"}
-${data.memories.length > 0 ? `
-\u{1F9E0} MEM\xD3RIAS RELEVANTES:
-${data.memories.slice(0, 3).map((m) => `   \u2022 ${m}`).join("\n")}` : ""}${data.notes.length > 0 ? `
-\u{1F4DD} ANOTA\xC7\xD5ES RECENTES:
-${data.notes.slice(0, 3).map((n) => `   \u2022 ${n}`).join("\n")}` : ""}\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550`;
-var INSIGHT_DAILY = () => `Voc\xEA \xE9 um consultor executivo pessoal analisando dados reais do usu\xE1rio.
-Gere exatamente 3 insights curtos e acion\xE1veis em portugu\xEAs.
-Retorne APENAS um JSON array: ["insight 1", "insight 2", "insight 3"]
-Cada insight: m\xE1ximo 2 frases. Espec\xEDfico, com n\xFAmeros quando poss\xEDvel.`;
-var INSIGHT_FINANCIAL = (nome) => `Voc\xEA \xE9 o CFO pessoal de ${nome}.
-Gere um relat\xF3rio financeiro executivo em portugu\xEAs (m\xE1ximo 4 par\xE1grafos).
-Seja espec\xEDfico com n\xFAmeros reais. Identifique padr\xF5es. D\xEA 2 recomenda\xE7\xF5es acion\xE1veis.`;
-var MEMORY_EXTRACT = () => `Transcreva ou analise este conte\xFAdo em portugu\xEAs brasileiro.
-Retorne APENAS o texto extra\xEDdo ou transcrito, sem explica\xE7\xF5es.`;
-var MEMORY_OCR = () => `Analise esta imagem.
-Se for nota fiscal, recibo ou comprovante: retorne JSON:
-{ "isReceipt": true, "valor": <number>, "descricao": "<string>", "data": "<YYYY-MM-DD>", "text": "<texto completo>" }
-Se n\xE3o for recibo: retorne JSON:
-{ "isReceipt": false, "text": "<texto ou descri\xE7\xE3o da imagem>" }
-Retorne APENAS o JSON, sem markdown.`;
-
-// services/engine/context.ts
 init_memory();
 async function getContext(query) {
   const db = readDatabase();

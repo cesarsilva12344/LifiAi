@@ -15,6 +15,8 @@
  */
 
 import { getProvider } from './provider';
+import { readDatabase } from '../../server/db';
+import { ROUTER_CLASSIFY } from './prompt-registry';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -28,61 +30,33 @@ export interface RouterResult {
 }
 
 // ---------------------------------------------------------------------------
-// System Prompt (Routing Only)
-// ---------------------------------------------------------------------------
-
-const ROUTER_SYSTEM_PROMPT = `Você é o AI Router do LifeOS — um motor de classificação de intenção de altíssima precisão em português brasileiro.
-
-Sua ÚNICA função é analisar o texto do usuário e retornar um JSON com:
-- "intent": categoria da mensagem
-- "extracted_data": dados estruturados extraídos
-- "explanation": 1 frase curta explicando a classificação
-- "confidence": número entre 0 e 1
-
-CATEGORIAS DE INTENT:
-- "expense" → despesas, gastos tradicionais, compras no débito/dinheiro
-- "income"  → receitas, ganhos, salário, pix recebido
-- "task"    → tarefas, afazeres, to-dos, ações futuras
-- "reminder" → lembretes com data/hora específica
-- "goal"    → metas com progresso numérico
-- "habit"   → check-in em hábito ou rotina diária
-- "project" → criação de novo projeto
-- "note"    → anotações, aprendizados, diários
-- "idea"    → ideias criativas para avaliar depois
-- "memory"  → fatos importantes de vida pessoal/profissional
-- "decision" → decisões importantes e o que espera dela
-- "meditation" → registrar uma sessão de meditação, respiração ou mindfulness
-- "mood" → registrar humor (1 a 10) e energia física/mental (1 a 10)
-- "debt" → registrar uma dívida com credor e valor original
-- "debt_payment" → pagar/quitar uma dívida
-- "budget" → definir teto orçamentário mensal por categoria
-- "chat"    → conversa, pergunta direta ao assistente
-
-REGRAS DE EXTRAÇÃO:
-1. expense/income → "valor" (número), "categoria" (1 palavra), "descricao", "data" (YYYY-MM-DD, hoje se omitida)
-2. task → "titulo", "prioridade" (high/medium/low), "prazo" (YYYY-MM-DD, amanhã se omitido), "status": "pending"
-3. reminder → "titulo", "data_hora" (ISO string), "status": "active"
-4. goal → "titulo", "meta" (número alvo), "progresso" (0), "prazo" (YYYY-MM-DD)
-5. habit → "nome", "frequencia" (diaria/semanal)
-6. note/memory → "conteudo" (texto completo), "tags" (array de palavras-chave)
-7. idea → "titulo" (nome curto), "conteudo" (detalhes), "score" (1-10 potencial)
-8. decision → "title", "context", "expected_outcome", "review_at" (YYYY-MM-DD)
-9. meditation → "duration_seconds" (número), "type" (breathing/guided/gratitude/visualization/body_scan), "mood_before" (número), "mood_after" (número)
-10. mood → "mood_score" (número), "energy_level" (número), "context" (texto)
-11. debt → "descricao", "credor", "valor_original" (número), "vencimento" (YYYY-MM-DD)
-12. debt_payment → "debt_id", "valor_pago" (número)
-13. budget → "category_id", "valor_planejado" (número), "mes" (número), "ano" (número)
-
-Retorne APENAS o JSON, sem markdown, sem explicação fora do JSON.`;
-
-// ---------------------------------------------------------------------------
 // Main Router Function
 // ---------------------------------------------------------------------------
 
 export async function routeMessage(text: string): Promise<RouterResult> {
   const today = new Date().toISOString().split('T')[0];
-  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-  const userMessage = `Data de hoje: ${today}. Texto para classificar: "${text}"`;
+  const userMessage = `Texto para classificar: "${text}"`;
+
+  let accountsList = '';
+  let cardsList = '';
+  let categoriesList = '';
+
+  try {
+    const db = readDatabase();
+    if (db.accounts && db.accounts.length > 0) {
+      accountsList = db.accounts.map(a => `- Nome: "${a.nome}", ID: "${a.id}", Tipo: "${a.tipo}"`).join('\n');
+    }
+    if (db.creditCards && db.creditCards.length > 0) {
+      cardsList = db.creditCards.map(c => `- Nome: "${c.nome}", ID: "${c.id}"`).join('\n');
+    }
+    if (db.categories && db.categories.length > 0) {
+      categoriesList = db.categories.map(c => `- Nome: "${c.nome}", ID: "${c.id}", Tipo: "${c.tipo}"`).join('\n');
+    }
+  } catch (dbErr: any) {
+    console.warn('[Router] Erro ao ler banco para mapear entidades no prompt:', dbErr.message);
+  }
+
+  const systemPrompt = ROUTER_CLASSIFY(today, accountsList, cardsList, categoriesList);
 
   try {
     const provider = getProvider();
@@ -91,7 +65,7 @@ export async function routeMessage(text: string): Promise<RouterResult> {
       return heuristicFallback(text, today);
     }
 
-    const result = await provider.chatJSON<RouterResult>(ROUTER_SYSTEM_PROMPT, userMessage);
+    const result = await provider.chatJSON<RouterResult>(systemPrompt, userMessage);
 
     // Validate and normalize
     return {

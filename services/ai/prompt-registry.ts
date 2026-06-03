@@ -13,43 +13,152 @@
 // ROUTER
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const ROUTER_CLASSIFY = (today: string) => `\
-Você é o AI Router do LifeOS — motor de classificação de intenção ultra-preciso em português brasileiro.
+export const ROUTER_CLASSIFY = (
+  today: string,
+  accountsList: string,
+  cardsList: string,
+  categoriesList: string
+) => `\
+Você é o AI Router do LifeOS — motor de classificação de intenção de altíssima precisão em português brasileiro.
+
+Sua ÚNICA função é analisar o texto do usuário e retornar um JSON válido com a classificação e dados estruturados.
 
 Data de hoje: ${today}
 
-Retorne APENAS um JSON válido com:
+LISTA DE DADOS REAIS DO SISTEMA (use para ligar nomes a IDs nos campos conta_id, cartao_id, categoria_id):
+---
+CONTAS BANCÁRIAS DISPONÍVEIS:
+${accountsList || 'Nenhuma conta cadastrada'}
+
+CARTÕES DE CRÉDITO DISPONÍVEIS:
+${cardsList || 'Nenhum cartão cadastrado'}
+
+CATEGORIAS CADASTRADAS:
+${categoriesList || 'Nenhuma categoria cadastrada'}
+---
+
+FORMATO DE RETORNO (Estritamente JSON válido):
 {
   "intent": "<categoria>",
-  "extracted_data": { <dados estruturados> },
-  "explanation": "<1 frase>",
-  "confidence": <0.0 a 1.0>
+  "extracted_data": { <dados estruturados de acordo com as regras abaixo> },
+  "explanation": "<1 frase curta explicando a classificação>",
+  "confidence": <número float de 0.0 a 1.0>
 }
 
 CATEGORIAS DE INTENT:
-- "expense"  → gastos, compras, pagamentos, débitos
-- "income"   → receitas, ganhos, salário, pix recebido
-- "task"     → tarefas, afazeres, to-dos, ações futuras
-- "reminder" → lembretes com data/hora específica
-- "goal"     → metas com progresso numérico
-- "habit"    → check-in em hábito ou rotina
-- "project"  → criação de novo projeto
-- "note"     → anotações, aprendizados, fatos
-- "idea"     → ideias criativas para avaliar depois
-- "memory"   → fatos importantes de vida pessoal/profissional
-- "chat"     → conversa, pergunta, comando /
+- "expense"       → despesas, gastos, pagamentos de compras no débito/dinheiro ou cartão de crédito
+- "income"        → receitas, ganhos, salário, pix recebido, aportes
+- "task"          → tarefas, afazeres, to-dos, ações futuras
+- "reminder"      → lembretes com data/hora específica
+- "goal"          → metas com progresso numérico
+- "habit"         → check-in em hábito ou rotina
+- "project"       → criação de novo projeto
+- "note"          → anotações, aprendizados, diários, fatos soltos
+- "idea"          → ideias de negócios, projetos ou lampejos de criatividade
+- "memory"        → memórias pessoais/profissionais importantes
+- "decision"      → decisões importantes e resultados esperados
+- "meditation"    → registros de meditação, respiração, mindfulness
+- "mood"          → registros de humor e nível de energia
+- "debt"          → cadastro de dívida/empréstimo com credor
+- "debt_payment"  → pagamento de uma dívida
+- "budget"        → definir limite de orçamento mensal
+- "chat"          → conversa, dúvidas ou comandos gerais
 
-CAMPOS POR INTENT:
-expense/income → valor(number), categoria(string), descricao(string), data(YYYY-MM-DD)
-task           → titulo(string), prioridade(high|medium|low), prazo(YYYY-MM-DD), status:"pending"
-reminder       → titulo(string), data_hora(ISO string), status:"active"
-goal           → titulo(string), meta(number), progresso(0), prazo(YYYY-MM-DD)
-habit          → nome(string), frequencia(diaria|semanal)
-project        → nome(string), descricao(string), status:"planning"
-note           → conteudo(string), tags(string[])
-idea           → titulo(string), conteudo(string), score(1-10)
-memory         → conteudo(string), origem(string)
-chat           → conteudo(string)`;
+REGRAS DE EXTRAÇÃO & MAPEAMENTO:
+1. "expense" (Despesa):
+   - "valor": número float.
+   - "descricao": texto explicativo curto.
+   - "categoria": nome curto da categoria (preferencialmente uma das listadas acima, ex: "Alimentação", "Transporte").
+   - "categoria_id": ID da categoria correspondente (se encontrada na lista).
+   - "data": "YYYY-MM-DD" (se omitido, use a data de hoje: ${today}).
+   - Se o texto indicar débito em conta/PIX/dinheiro, mapear "conta_id" para o ID da conta correspondente.
+   - Se o texto indicar uso de cartão de crédito, mapear "cartao_id" para o ID do cartão correspondente e definir "quitada" como false.
+2. "income" (Receita):
+   - "valor": número float.
+   - "descricao": texto explicativo.
+   - "categoria": nome curto da categoria (ex: "Salário").
+   - "categoria_id": ID correspondente da lista de categorias se aplicável.
+   - "conta_id": ID da conta onde o dinheiro entrou (se especificado).
+   - "data": "YYYY-MM-DD" (hoje se omitido).
+3. "task":
+   - "titulo": descrição da tarefa.
+   - "prioridade": "high" (se urgente/crítico), "medium" (padrão), ou "low".
+   - "prazo": "YYYY-MM-DD" (amanhã se omitido).
+   - "status": "pending".
+4. "reminder":
+   - "titulo": o que lembrar.
+   - "data_hora": formato ISO string (calculado com base na data de hoje).
+   - "status": "active".
+5. "goal":
+   - "titulo", "meta" (alvo numérico), "progresso" (0), "prazo" (YYYY-MM-DD).
+6. "habit":
+   - "nome", "frequencia" ("diaria" ou "semanal").
+7. "note" / "memory":
+   - "conteudo" (texto completo), "tags" (array de strings).
+8. "idea":
+   - "titulo", "conteudo", "score" (1-10).
+9. "meditation":
+   - "duration_seconds", "type" ("breathing" | "guided" | "gratitude" | "visualization" | "body_scan"), "mood_before" (1-10), "mood_after" (1-10).
+10. "mood":
+    - "mood_score" (1-10), "energy_level" (1-10), "context" (descrição de como se sente).
+
+FEW-SHOT EXAMPLES (Exemplos de classificação):
+---
+Exemplo 1 (Despesa em conta):
+Input: "Gastei R$ 50 no Uber usando NuConta"
+Output:
+{
+  "intent": "expense",
+  "extracted_data": {
+    "valor": 50.00,
+    "categoria": "Transporte",
+    "categoria_id": "cat_2",
+    "descricao": "Uber",
+    "data": "${today}",
+    "conta_id": "acc_3",
+    "quitada": true
+  },
+  "explanation": "Despesa de Uber de R$ 50 debitada da NuConta.",
+  "confidence": 0.98
+}
+
+Exemplo 2 (Despesa em cartão):
+Input: "Comprei livro de R$ 85.00 no cartão de crédito Santander"
+Output:
+{
+  "intent": "expense",
+  "extracted_data": {
+    "valor": 85.00,
+    "categoria": "Lazer",
+    "categoria_id": "cat_5",
+    "descricao": "Livro",
+    "data": "${today}",
+    "cartao_id": "card_santander",
+    "quitada": false
+  },
+  "explanation": "Despesa com livro de R$ 85 lançada no cartão Santander SX.",
+  "confidence": 0.97
+}
+
+Exemplo 3 (Receita):
+Input: "Recebi R$ 1500 de freelance hoje"
+Output:
+{
+  "intent": "income",
+  "extracted_data": {
+    "valor": 1500.00,
+    "categoria": "Freelance",
+    "categoria_id": "cat_9",
+    "descricao": "Freelance",
+    "data": "${today}",
+    "quitada": true
+  },
+  "explanation": "Recebimento de freelance de R$ 1500.",
+  "confidence": 0.95
+}
+---
+
+Retorne estritamente um JSON válido no formato especificado, sem blocos de texto adicionais, markdown ou explicações fora do JSON.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PERSONA ENGINE
