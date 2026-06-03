@@ -2,26 +2,26 @@ import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
 import fs from 'fs';
-import { 
-  readDatabase, 
-  writeDatabase, 
-  addInboxItem, 
-  getActivePersona, 
-  updateActivePersona, 
-  getProfile, 
+import {
+  readDatabase,
+  writeDatabase,
+  addInboxItem,
+  getActivePersona,
+  updateActivePersona,
+  getProfile,
   updateProfile,
   initializeDatabase
 } from './db';
-import { 
-  classifyAndParseInput, 
-  generatePersonaResponse, 
-  getEmbedding, 
+import {
+  classifyAndParseInput,
+  generatePersonaResponse,
+  getEmbedding,
   semanticSearch,
   getAI
 } from './ai';
-import { 
-  handleCommand, 
-  isCommand, 
+import {
+  handleCommand,
+  isCommand,
   executeFromIntent,
   deleteEntity,
   updateTask,
@@ -192,7 +192,7 @@ async function startServer() {
       const db = readDatabase();
       const habitIndex = db.habits.findIndex(h => h.id === id);
       const todayStr = '2026-05-26'; // Real operational system target today
-      
+
       if (habitIndex !== -1) {
         const habit = db.habits[habitIndex];
         if (!habit.history.includes(todayStr)) {
@@ -312,8 +312,8 @@ async function startServer() {
     - Despesas por categorias: ${JSON.stringify(db.expenses)}
 
     TAREFAS:
-    - Pendentes (${db.tasks.filter(t => t.status==='pending').length}): ${db.tasks.filter(t => t.status==='pending').map(t => t.titulo).join(', ')}
-    - Concluídas (${db.tasks.filter(t => t.status==='completed').length})
+    - Pendentes (${db.tasks.filter(t => t.status === 'pending').length}): ${db.tasks.filter(t => t.status === 'pending').map(t => t.titulo).join(', ')}
+    - Concluídas (${db.tasks.filter(t => t.status === 'completed').length})
 
     HÁBITOS:
     - Streaks: ${db.habits.map(h => `${h.nome} (Streak: ${h.streak}/Frequência: ${h.frequencia})`).join(', ')}
@@ -353,7 +353,7 @@ async function startServer() {
   // ------------------------------------------------------------------------
   // CENTRAL MESSAGING PIPELINE (Channel-independent & WhatsApp Ready)
   // ------------------------------------------------------------------------
-  
+
   interface UnifiedMessage {
     id: string;
     text: string;
@@ -487,7 +487,7 @@ async function startServer() {
       };
 
       const result = await handleUnifiedMessage(unifiedMsg);
-      
+
       // Here you would trigger standard WhatsApp API calls to send the response back:
       // await sendWhatsAppMessage(unifiedMsg.senderId, result.response);
 
@@ -600,7 +600,7 @@ async function startServer() {
       const result = Object.keys(hourlyAvg).map(h => ({
         hour: parseInt(h),
         avg_energy: parseFloat((hourlyAvg[parseInt(h)].sum / hourlyAvg[parseInt(h)].count).toFixed(2))
-      })).sort((a,b) => a.hour - b.hour);
+      })).sort((a, b) => a.hour - b.hour);
       res.json(result);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -700,7 +700,7 @@ async function startServer() {
     try {
       const { fileUrl } = req.body;
       const db = readDatabase();
-      
+
       // Simulate spreadsheet processing by extracting mocked rows
       const extractedRows = [
         { id: 'bdg_ex1', category_id: 'Alimentação', valor_planejado: 800, mes: 5, ano: 2026 },
@@ -773,17 +773,17 @@ async function startServer() {
     try {
       const params = req.body; // { months, newHires, adSpend, newDebt, priceHike }
       const db = readDatabase();
-      
+
       const totalIncome = db.income.reduce((sum, item) => sum + item.valor, 0);
       const totalExpenses = db.expenses.reduce((sum, item) => sum + item.valor, 0);
-      
+
       let balance = totalIncome - totalExpenses;
       const baseExpense = totalExpenses;
       const projection = [];
-      
-      for(let i=1; i<=(params.months || 6); i++) {
+
+      for (let i = 1; i <= (params.months || 6); i++) {
         // Deterministic simulation formula matching Block 2
-        balance += (totalIncome * (1 + (params.priceHike || 0)/100)) - baseExpense - (params.newHires || 0) * 5000 - (params.adSpend || 0) - (params.newDebt || 0);
+        balance += (totalIncome * (1 + (params.priceHike || 0) / 100)) - baseExpense - (params.newHires || 0) * 5000 - (params.adSpend || 0) - (params.newDebt || 0);
         projection.push({ month: i, balance, risk: balance < 0 ? 'HIGH' : 'LOW' });
       }
 
@@ -837,7 +837,7 @@ async function startServer() {
       const totalIncome = db.income.reduce((sum, item) => sum + item.valor, 0);
       const totalExpenses = db.expenses.reduce((sum, item) => sum + item.valor, 0);
       const net = totalIncome - totalExpenses;
-      
+
       const urgentTasks = db.tasks.filter(t => t.status === 'pending').slice(0, 2).map(t => t.titulo).join(' e ');
       const activePersona = getActivePersona();
 
@@ -845,7 +845,7 @@ async function startServer() {
 
       const { createBriefing } = await import('../services/engine/action');
       const result = await createBriefing({ content: text });
-      
+
       if (result.success) res.json({ status: 'ok', text });
       else res.status(400).json({ error: result.error });
     } catch (err: any) {
@@ -1194,7 +1194,7 @@ async function startServer() {
       }
       const appUrl = req.body.appUrl || process.env.APP_URL || 'http://localhost:3000';
       const webhookUrl = `${appUrl}/api/telegram/real-webhook`;
-      
+
       const registerUrl = `https://api.telegram.org/bot${profile.telegramBotToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`;
       const response = await fetch(registerUrl);
       const data = await response.json() as any;
@@ -1209,79 +1209,20 @@ async function startServer() {
     }
   });
 
-  // Diagnostic test endpoint for Telegram Bot
-  app.get('/api/test-telegram', async (req, res) => {
-    try {
-      const profile = getProfile();
-      const token = profile.telegramBotToken;
-      const chatId = profile.telegramChatId;
-      
-      const debugInfo = {
-        hasToken: !!token,
-        tokenLength: token ? token.length : 0,
-        chatId: chatId || null,
-        envBotToken: !!process.env.TELEGRAM_BOT_TOKEN,
-        envChatId: !!process.env.TELEGRAM_CHAT_ID,
-      };
-
-      if (!token) {
-        return res.status(400).json({ 
-          error: 'Token do Telegram Bot não configurado (vazio).',
-          debugInfo
-        });
-      }
-
-      const testChatId = req.query.chat_id as string || chatId;
-
-      if (!testChatId) {
-        return res.status(400).json({ 
-          error: 'Chat ID do Telegram não configurado (vazio) e nenhum query param chat_id foi fornecido.',
-          debugInfo
-        });
-      }
-
-      const telegramUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-      const response = await fetch(telegramUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: testChatId,
-          text: `🔔 **Teste de Diagnóstico do LifeOS AI!**\nSeu servidor e o Bot estão se comunicando com sucesso.\n\n⚙️ **Informações:**\n- Chat ID testado: \`${testChatId}\``,
-          parse_mode: 'Markdown'
-        })
-      });
-
-      const data = await response.json() as any;
-      res.json({
-        success: data.ok,
-        telegramResponse: data,
-        debugInfo
-      });
-    } catch (err: any) {
-      res.status(500).json({ 
-        error: 'Erro no pipeline de teste do Telegram.', 
-        message: err.message 
-      });
-    }
-  });
-
   // Real Telegram Webhook
   app.post('/api/telegram/real-webhook', async (req, res) => {
     try {
       const update = req.body;
       console.log('[Telegram Bot] Received update:', JSON.stringify(update));
-      
+
       const message = update.message;
       if (!message) return res.status(200).send('OK');
 
       const chatId = message.chat.id;
       const text = message.text;
-      
+
       const profile = getProfile();
-      console.log('[Telegram Webhook] Received message:', text, 'from chatId:', chatId);
-      console.log('[Telegram Webhook] Bot token exists:', !!profile.telegramBotToken);
-      console.log('[Telegram Webhook] Profile Chat ID configured:', profile.telegramChatId);
-      
+
       // Auto-bind telegramChatId if not configured yet
       if (!profile.telegramChatId) {
         console.log(`[Telegram Bot] No telegramChatId set. Auto-binding to chatId: ${chatId}`);
@@ -1308,7 +1249,7 @@ async function startServer() {
             let intent = 'chat';
             let extracted_data: any = {};
             let routerSuccess = false;
-            
+
             // Try running router AI
             try {
               const routerRes = await runRouter(text);
@@ -1317,7 +1258,7 @@ async function startServer() {
               routerSuccess = true;
             } catch (routerErr: any) {
               console.warn('[Telegram Webhook] AI Router failed, using fallback regex parsing:', routerErr.message);
-              
+
               // Smart Regex Fallback: "Gasto Uber R$ 42.90"
               const valMatch = text.match(/(?:R\$|r\$|\$)\s*([0-9]+(?:[.,][0-9]{2})?)/) || text.match(/([0-9]+(?:[.,][0-9]{2})?)\s*(?:reais|reais)/);
               if (valMatch) {
@@ -1343,7 +1284,7 @@ async function startServer() {
               }
             } catch (personaErr: any) {
               console.warn('[Telegram Webhook] Persona AI failed, using template fallback:', personaErr.message);
-              
+
               if (actionRes.success && (intent === 'expense' || intent === 'income')) {
                 const isIncome = intent === 'income';
                 reply = `✅ **[CFO Padrão]** ${isIncome ? 'Receita' : 'Despesa'} registrada no banco de dados!\n\n📝 **Descrição:** ${extracted_data.descricao || 'Registro via Telegram'}\n💰 **Valor:** R$ ${Number(extracted_data.valor).toFixed(2)}\n📂 **Categoria:** ${extracted_data.categoria || 'Geral'}\n\n⚠️ *Nota: O seu registro foi salvo com sucesso, mas a IA de conversação personalizada está indisponível. Verifique se a sua **Gemini API Key** está configurada nos Ajustes.*`;
@@ -1389,7 +1330,7 @@ async function startServer() {
         if (!profile.telegramBotToken || !profile.telegramChatId) return;
 
         const now = new Date();
-        
+
         // 1. Process Reminders
         let dbChanged = false;
         for (const rem of db.reminders) {
@@ -1423,7 +1364,7 @@ async function startServer() {
         const lastDigestKey = `last_digest_${todayStr}`;
         const dbAny = db as any;
         if (!dbAny.metadata) dbAny.metadata = {};
-        
+
         if (!dbAny.metadata[lastDigestKey]) {
           const currentHour = now.getHours();
           if (currentHour >= 8 && currentHour < 10) {
@@ -1432,7 +1373,7 @@ async function startServer() {
             writeDatabase(db);
 
             const digestResult = await handleCommand('/hoje');
-            
+
             const telegramUrl = `https://api.telegram.org/bot${profile.telegramBotToken}/sendMessage`;
             await fetch(telegramUrl, {
               method: 'POST',
