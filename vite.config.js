@@ -17,6 +17,9 @@ export default defineConfig(() => {
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+        workbox: {
+          navigateFallbackDenylist: [/^\/api/]
+        },
         manifest: {
           name: 'LifeOS AI',
           short_name: 'LifeOS',
