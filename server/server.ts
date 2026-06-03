@@ -64,6 +64,51 @@ async function startServer() {
     next();
   });
 
+  // Middleware to await pending database syncs before sending response in Serverless environments
+  app.use((req, res, next) => {
+    const g = global as any;
+    g.pendingDbSyncs = g.pendingDbSyncs || [];
+
+    const originalSend = res.send;
+    const originalJson = res.json;
+
+    let sent = false;
+
+    res.send = function(body?: any) {
+      if (sent) return res;
+      sent = true;
+      if (g.pendingDbSyncs && g.pendingDbSyncs.length > 0) {
+        const syncs = [...g.pendingDbSyncs];
+        g.pendingDbSyncs = [];
+        console.log(`[Vercel Serverless] Awaiting ${syncs.length} database syncs before send...`);
+        Promise.all(syncs).finally(() => {
+          originalSend.call(res, body);
+        });
+      } else {
+        originalSend.call(res, body);
+      }
+      return res;
+    };
+
+    res.json = function(obj?: any) {
+      if (sent) return res;
+      sent = true;
+      if (g.pendingDbSyncs && g.pendingDbSyncs.length > 0) {
+        const syncs = [...g.pendingDbSyncs];
+        g.pendingDbSyncs = [];
+        console.log(`[Vercel Serverless] Awaiting ${syncs.length} database syncs before json...`);
+        Promise.all(syncs).finally(() => {
+          originalJson.call(res, obj);
+        });
+      } else {
+        originalJson.call(res, obj);
+      }
+      return res;
+    };
+
+    next();
+  });
+
   // In-memory/File-bound simulated Telegram Chat History
   const getTelegramHistory = () => {
     const db = readDatabase() as any;

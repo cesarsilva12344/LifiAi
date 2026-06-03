@@ -496,9 +496,15 @@ export function writeDatabase(state: DatabaseState): void {
     console.error('Falha ao escrever banco de dados JSON:', error);
   }
 
-  syncAllToSupabase(state).catch(err => {
+  const syncPromise = syncAllToSupabase(state).catch(err => {
     console.error('[LifeOS AI] Background sync to Supabase failed:', err);
   });
+
+  if (typeof global !== 'undefined') {
+    const g = global as any;
+    g.pendingDbSyncs = g.pendingDbSyncs || [];
+    g.pendingDbSyncs.push(syncPromise);
+  }
 }
 
 // Helpers

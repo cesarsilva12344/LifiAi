@@ -277,9 +277,14 @@ function writeDatabase(state) {
   } catch (error) {
     console.error("Falha ao escrever banco de dados JSON:", error);
   }
-  syncAllToSupabase(state).catch((err) => {
+  const syncPromise = syncAllToSupabase(state).catch((err) => {
     console.error("[LifeOS AI] Background sync to Supabase failed:", err);
   });
+  if (typeof global !== "undefined") {
+    const g = global;
+    g.pendingDbSyncs = g.pendingDbSyncs || [];
+    g.pendingDbSyncs.push(syncPromise);
+  }
 }
 function addInboxItem(rawContentOrItem, type = "unknown") {
   const db = readDatabase();
@@ -2516,6 +2521,44 @@ async function startServer() {
       req.url = forwardedPath + queryString;
       console.log(`[Vercel Route] Rewritten req.url to: ${req.url}`);
     }
+    next();
+  });
+  app.use((req, res, next) => {
+    const g = global;
+    g.pendingDbSyncs = g.pendingDbSyncs || [];
+    const originalSend = res.send;
+    const originalJson = res.json;
+    let sent = false;
+    res.send = function(body) {
+      if (sent) return res;
+      sent = true;
+      if (g.pendingDbSyncs && g.pendingDbSyncs.length > 0) {
+        const syncs = [...g.pendingDbSyncs];
+        g.pendingDbSyncs = [];
+        console.log(`[Vercel Serverless] Awaiting ${syncs.length} database syncs before send...`);
+        Promise.all(syncs).finally(() => {
+          originalSend.call(res, body);
+        });
+      } else {
+        originalSend.call(res, body);
+      }
+      return res;
+    };
+    res.json = function(obj) {
+      if (sent) return res;
+      sent = true;
+      if (g.pendingDbSyncs && g.pendingDbSyncs.length > 0) {
+        const syncs = [...g.pendingDbSyncs];
+        g.pendingDbSyncs = [];
+        console.log(`[Vercel Serverless] Awaiting ${syncs.length} database syncs before json...`);
+        Promise.all(syncs).finally(() => {
+          originalJson.call(res, obj);
+        });
+      } else {
+        originalJson.call(res, obj);
+      }
+      return res;
+    };
     next();
   });
   const getTelegramHistory = () => {
