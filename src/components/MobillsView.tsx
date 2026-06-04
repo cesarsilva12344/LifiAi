@@ -32,6 +32,88 @@ export default function MobillsView({ data, onRefresh, theme = 'light' }: Mobill
   // Sub-tabs for Reports
   const [reportType, setReportType] = useState<'categoria' | 'diario' | 'balanco'>('categoria');
 
+  // Month selector state (defaults to June 2026)
+  const [selectedMonth, setSelectedMonth] = useState(5); // June (0-indexed)
+  const [selectedYear, setSelectedYear] = useState(2026);
+
+  const PORTUGUESE_MONTHS = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+  ];
+
+  const handlePrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(y => y - 1);
+    } else {
+      setSelectedMonth(m => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(y => y + 1);
+    } else {
+      setSelectedMonth(m => m + 1);
+    }
+  };
+
+  const handleToggleStatus = async (tx: any) => {
+    let url = '';
+    if (tx.txType === 'income') {
+      url = `/api/db/income/${tx.id}`;
+    } else if (tx.txType === 'expense') {
+      url = `/api/db/expenses/${tx.id}`;
+    } else if (tx.txType === 'cardInvoice') {
+      url = `/api/db/card-expenses/${tx.id}`;
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quitada: !tx.quitada })
+      });
+      if (res.ok) {
+        showToast('Situação atualizada!', 'success');
+        onRefresh();
+      } else {
+        showToast('Erro ao atualizar situação.', 'error');
+      }
+    } catch (err: any) {
+      showToast(`Falha: ${err.message}`, 'error');
+    }
+  };
+
+  const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      showToast('Importando dados da planilha...', 'info');
+      try {
+        const res = await fetch('/api/db/import-csv', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ csvText: text })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          showToast(`Importação concluída! ${data.totalImported} itens processados.`, 'success');
+          onRefresh();
+        } else {
+          showToast('Erro ao importar planilha. Verifique a formatação.', 'error');
+        }
+      } catch (err: any) {
+        showToast(`Erro na comunicação: ${err.message}`, 'error');
+      }
+    };
+    reader.readAsText(file);
+  };
+
   // Modals state
   const [showAccountModal, setShowAccountModal] = useState<Account | null>(null);
   const [showNewAccountModal, setShowNewAccountModal] = useState(false);
@@ -485,178 +567,247 @@ export default function MobillsView({ data, onRefresh, theme = 'light' }: Mobill
         )}
 
         {/* ====================================================
-            TAB: TRANSAÇÕES (Extrato com Saldo Diário)
+            TAB: TRANSAÇÕES (Extrato Mensal com Filtro de Meses e Faturas)
             ==================================================== */}
-        {activeTab === 'transacoes' && (
-          <div className={`p-5 rounded-2xl border transition-colors shadow-md ${c.cardBg}`}>
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-3 mb-5">
-              <div>
-                <h3 className={`text-sm font-black uppercase tracking-wider ${c.titleText}`}>Extrato Detalhado</h3>
-                <p className="text-[10px] text-slate-400 font-mono">Saldo previsto calculado linha a linha de forma cronológica</p>
+        {activeTab === 'transacoes' && (() => {
+          const monthFilterStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+          
+          // Dynamic Monthly Calculations
+          const totalBalance = accounts.reduce((sum, acc) => sum + Number(acc.saldo_atual), 0);
+          
+          const monthIncomes = income.filter(i => i.data.startsWith(monthFilterStr));
+          const totalReceitas = monthIncomes.reduce((sum, i) => sum + i.valor, 0);
+          
+          const monthExpenses = expenses.filter(e => e.data.startsWith(monthFilterStr) && !e.descricao.toLowerCase().startsWith('pagamento fatura'));
+          const monthCardInvoices = cardExpenses.filter(ce => ce.data.startsWith(monthFilterStr));
+          const totalDespesas = monthExpenses.reduce((sum, e) => sum + e.valor, 0) + monthCardInvoices.reduce((sum, ce) => sum + ce.valor, 0);
+          
+          const balancoMensal = totalReceitas - totalDespesas;
+          
+          // Combine all month items
+          const monthTxs = [
+            ...monthIncomes.map(i => ({ ...i, txType: 'income' as const, quitada: i.quitada ?? true })),
+            ...monthExpenses.map(e => ({ ...e, txType: 'expense' as const, quitada: e.quitada ?? true })),
+            ...monthCardInvoices.map(ce => ({ ...ce, txType: 'cardInvoice' as const, quitada: ce.quitada ?? true, conta_id: undefined }))
+          ].sort((a, b) => b.data.localeCompare(a.data));
+
+          return (
+            <div className={`p-5 rounded-2xl border transition-colors shadow-md ${c.cardBg}`}>
+              
+              {/* Header section with CSV upload & new buttons */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b pb-3 mb-5">
+                <div>
+                  <h3 className={`text-sm font-black uppercase tracking-wider ${c.titleText}`}>Extrato Detalhado</h3>
+                  <p className="text-[10px] text-slate-400 font-mono">Movimentações consolidadas de {PORTUGUESE_MONTHS[selectedMonth]} {selectedYear}</p>
+                </div>
+
+                <div className="flex flex-wrap gap-2 text-xs items-center">
+                  {/* CSV Upload Button */}
+                  <label className="px-3 py-1.5 border border-dashed border-violet-500 hover:bg-violet-500/5 rounded-xl transition font-bold text-violet-500 cursor-pointer flex items-center gap-1.5 select-none">
+                    <Upload className="w-3.5 h-3.5" />
+                    Subir Planilha CSV
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleCSVUpload}
+                      className="hidden"
+                    />
+                  </label>
+
+                  <button
+                    onClick={() => setShowNewTxModal('expense')}
+                    className="px-2.5 py-1.5 border border-slate-350 hover:bg-slate-500/5 rounded-xl transition font-bold text-rose-500 cursor-pointer"
+                  >
+                    - Nova Despesa
+                  </button>
+                  <button
+                    onClick={() => setShowNewTxModal('income')}
+                    className="px-2.5 py-1.5 border border-slate-350 hover:bg-slate-500/5 rounded-xl transition font-bold text-emerald-500 cursor-pointer"
+                  >
+                    + Nova Receita
+                  </button>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-2 text-xs">
-                <button
-                  onClick={() => setShowNewTxModal('expense')}
-                  className="px-2.5 py-1.5 border border-slate-350 hover:bg-slate-500/5 rounded-xl transition font-bold text-rose-500 cursor-pointer"
+              {/* Month Navigator */}
+              <div className="flex items-center justify-center gap-4 my-2">
+                <button 
+                  onClick={handlePrevMonth} 
+                  className="p-1.5 rounded-xl border border-slate-500/10 hover:bg-slate-500/5 text-violet-600 transition select-none cursor-pointer"
                 >
-                  - Nova Despesa
+                  <ChevronLeft className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => setShowNewTxModal('income')}
-                  className="px-2.5 py-1.5 border border-slate-350 hover:bg-slate-500/5 rounded-xl transition font-bold text-emerald-500 cursor-pointer"
+                <div className="px-5 py-1.5 rounded-full bg-violet-600/5 border border-violet-600/15 font-black text-xs text-violet-600 tracking-wide select-none font-mono">
+                  {PORTUGUESE_MONTHS[selectedMonth]} {selectedYear}
+                </div>
+                <button 
+                  onClick={handleNextMonth} 
+                  className="p-1.5 rounded-xl border border-slate-500/10 hover:bg-slate-500/5 text-violet-600 transition select-none cursor-pointer"
                 >
-                  + Nova Receita
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-            </div>
 
-            {/* Compiled Transactions Stream */}
-            <div className="space-y-4">
-              {(() => {
-                // Combine incomes, expenses and card expenses
-                const allTxs = [
-                  ...income.map(i => ({ ...i, txType: 'income' as const, quitada: i.quitada ?? true })),
-                  ...expenses.map(e => ({ ...e, txType: 'expense' as const, quitada: e.quitada ?? true })),
-                  ...cardExpenses.map(ce => ({ ...ce, txType: 'card' as const, quitada: ce.quitada ?? true, conta_id: undefined }))
-                ];
+              {/* Monthly Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 my-5">
+                {/* Card 1: Saldo atual */}
+                <div className={`p-4 rounded-xl border ${c.cardBg} flex items-center gap-3.5 shadow-sm`}>
+                  <div className="p-2.5 rounded-lg bg-blue-500/15 text-blue-500">
+                    <Landmark className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Saldo atual</span>
+                    <span className={`text-sm font-black font-mono ${totalBalance >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      R$ {totalBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
 
-                if (allTxs.length === 0) {
-                  return (
-                    <div className="text-center py-12 text-xs font-mono text-slate-400">
-                      Nenhuma transação catalogada. Use os botões no topo para registrar.
-                    </div>
-                  );
-                }
+                {/* Card 2: Receitas */}
+                <div className={`p-4 rounded-xl border ${c.cardBg} flex items-center gap-3.5 shadow-sm`}>
+                  <div className="p-2.5 rounded-lg bg-emerald-500/15 text-emerald-500">
+                    <ArrowUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Receitas</span>
+                    <span className="text-sm font-black font-mono text-emerald-500">
+                      R$ {totalReceitas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
 
-                // Sort chronological descending (newest first)
-                allTxs.sort((a, b) => b.data.localeCompare(a.data));
+                {/* Card 3: Despesas */}
+                <div className={`p-4 rounded-xl border ${c.cardBg} flex items-center gap-3.5 shadow-sm`}>
+                  <div className="p-2.5 rounded-lg bg-rose-500/15 text-rose-500">
+                    <ArrowDown className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Despesas</span>
+                    <span className="text-sm font-black font-mono text-rose-500">
+                      R$ {totalDespesas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
 
-                // Group by day to compute daily predicted running totals
-                const groups: { [date: string]: typeof allTxs } = {};
-                allTxs.forEach(tx => {
-                  groups[tx.data] = groups[tx.data] || [];
-                  groups[tx.data].push(tx);
-                });
+                {/* Card 4: Balanço Mensal */}
+                <div className={`p-4 rounded-xl border ${c.cardBg} flex items-center gap-3.5 shadow-sm`}>
+                  <div className={`p-2.5 rounded-lg ${balancoMensal >= 0 ? 'bg-teal-500/15 text-teal-500' : 'bg-rose-500/15 text-rose-500'}`}>
+                    <DollarSign className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">Balanço mensal</span>
+                    <span className={`text-sm font-black font-mono ${balancoMensal >= 0 ? 'text-teal-500' : 'text-rose-500'}`}>
+                      R$ {balancoMensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-                // Compute running predicted balance for each day
-                // Start with total predicted balance today and calculate backwards
-                const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
-                
-                // Let's compute predicted balance after each day's transactions
-                let runningBalance = predictedTotalBalance;
-                const dailyBalances: { [date: string]: number } = {};
+              {/* Transactions Table */}
+              <div className="overflow-x-auto rounded-xl border border-slate-500/10 shadow-sm mt-4">
+                <table className="w-full text-xs text-left border-collapse">
+                  <thead>
+                    <tr className={`border-b ${c.divider} bg-slate-500/5 text-slate-500 font-mono font-bold uppercase tracking-wider`}>
+                      <th className="py-3 px-4 w-12 text-center">Situação</th>
+                      <th className="py-3 px-4">Data</th>
+                      <th className="py-3 px-4">Descrição</th>
+                      <th className="py-3 px-4">Categoria</th>
+                      <th className="py-3 px-4">Conta/Cartão</th>
+                      <th className="py-3 px-4 text-right">Valor</th>
+                      <th className="py-3 px-4 text-center">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-500/5">
+                    {monthTxs.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-12 text-center text-slate-400 font-mono font-bold">
+                          Nenhuma transação cadastrada para este mês.
+                        </td>
+                      </tr>
+                    ) : (
+                      monthTxs.map((tx: any) => {
+                        const isIncome = tx.txType === 'income';
+                        const isCard = tx.txType === 'cardInvoice';
+                        const isOverdue = !tx.quitada && new Date(tx.data + 'T12:00:00') <= new Date();
 
-                // To compute correctly backwards, we should do a forward pass first
-                // Let's sort dates ascending to compute forward
-                const ascDates = [...sortedDates].reverse();
-                let forwardBalance = currentTotalBalance; // start with starting balance (or mock baseline)
-                
-                // Better approach: calculate running balance day-by-day dynamically.
-                // Let's mock a starting balance of R$ 5000 or show predicted daily subtotal
-                // by accumulating day-by-day.
-                let cumulativeBalance = currentTotalBalance;
-                
-                // Sort ascending to compile forward balance
-                const sortedTxsAsc = [...allTxs].sort((a, b) => a.data.localeCompare(b.data));
-                const txBalancesMap = new Map();
-                
-                sortedTxsAsc.forEach(tx => {
-                  const val = tx.txType === 'income' ? tx.valor : -tx.valor;
-                  cumulativeBalance += val;
-                  txBalancesMap.set(tx.id, cumulativeBalance);
-                });
+                        let accountLabel = 'Outros';
+                        if (isCard) {
+                          accountLabel = creditCards.find(cc => cc.id === tx.cartao_id)?.nome || 'Cartão de Crédito';
+                        } else {
+                          accountLabel = accounts.find(acc => acc.id === tx.conta_id)?.nome || 'Sem Conta';
+                        }
 
-                return sortedDates.map(dateStr => {
-                  const dayTxs = groups[dateStr];
-                  const formattedDate = new Date(dateStr + 'T12:00:00').toLocaleDateString('pt-BR', {
-                    day: '2-digit', month: '2-digit', year: 'numeric'
-                  });
-
-                  // Get final balance of this day (newest tx of the day)
-                  const dayLastTx = dayTxs[0]; // since dayTxs is sorted newest first
-                  const dayEndBalance = txBalancesMap.get(dayLastTx.id) || 0;
-
-                  return (
-                    <div key={dateStr} className="space-y-2">
-                      <div className="flex justify-between items-center text-[10px] font-black uppercase font-mono tracking-widest text-slate-400 pt-3 border-t border-slate-500/5">
-                        <span>📅 {formattedDate}</span>
-                      </div>
-
-                      <div className="space-y-1.5">
-                        {dayTxs.map(tx => {
-                          const isIncome = tx.txType === 'income';
-                          const isCard = tx.txType === 'card';
-                          
-                          // Warning condition: unpaid and date <= today
-                          const isUnpaid = !tx.quitada;
-                          const isOverdue = isUnpaid && new Date(tx.data + 'T12:00:00') <= new Date();
-
-                          const accName = isCard 
-                            ? (creditCards.find(c => c.id === tx.cartao_id)?.nome || 'Cartão')
-                            : (accounts.find(a => a.id === tx.conta_id)?.nome || 'Outros');
-
-                          return (
-                            <div
-                              key={tx.id}
-                              className={`flex items-center justify-between p-3.5 border rounded-xl ${c.rowBg} text-xs`}
-                            >
-                              <div className="flex items-center gap-3 min-w-0 pr-4">
-                                <div className="flex items-center gap-1.5">
-                                  {isOverdue && (
-                                    <span className="p-1 rounded bg-rose-500 text-white animate-pulse" title="Vencido/Pendente">
-                                      <AlertCircle className="w-3.5 h-3.5" />
-                                    </span>
-                                  )}
-                                  {isCard && (
-                                    <span className="p-1 rounded bg-purple-500/10 text-purple-500" title="Compra no Crédito">
-                                      <CreditCard className="w-3.5 h-3.5" />
-                                    </span>
-                                  )}
-                                  {!isOverdue && !isCard && (
-                                    <span className={`w-2.5 h-2.5 rounded-full ${isIncome ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                                  )}
-                                </div>
-                                
-                                <div className="truncate">
-                                  <h4 className={`font-bold truncate ${c.titleText}`}>{tx.descricao}</h4>
-                                  <span className={`text-[9px] font-mono tracking-wide text-slate-400 uppercase`}>
-                                    {tx.categoria} | {accName}
+                        return (
+                          <tr key={tx.id} className={`hover:bg-slate-500/5 transition font-medium text-slate-705 dark:text-slate-200`}>
+                            {/* Situação column */}
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                onClick={() => handleToggleStatus(tx)}
+                                className="p-1 rounded-full hover:bg-slate-500/10 transition cursor-pointer inline-flex items-center justify-center"
+                                title={tx.quitada ? 'Marcar como pendente' : 'Marcar como pago'}
+                              >
+                                {tx.quitada ? (
+                                  <span className="w-5 h-5 bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center">
+                                    <Check className="w-3 h-3 stroke-[3]" />
                                   </span>
-                                </div>
-                              </div>
+                                ) : (
+                                  <span className={`w-5 h-5 ${isOverdue ? 'bg-rose-500/10 text-rose-500 animate-pulse' : 'bg-amber-500/10 text-amber-500'} rounded-full flex items-center justify-center`}>
+                                    <AlertCircle className="w-3 h-3 stroke-[3]" />
+                                  </span>
+                                )}
+                              </button>
+                            </td>
 
-                              <div className="flex items-center gap-4 shrink-0 font-mono">
-                                <span className={`font-black ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                  {isIncome ? '+' : '-'} R$ {tx.valor.toFixed(2)}
-                                </span>
-                                
-                                <button
-                                  onClick={() => handleDeleteEntity(isCard ? 'card-expenses' : isIncome ? 'income' : 'expenses', tx.id)}
-                                  className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded transition duration-200 cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            {/* Data column */}
+                            <td className="py-3 px-4 font-mono">
+                              {new Date(tx.data + 'T12:00:00').toLocaleDateString('pt-BR')}
+                            </td>
 
-                      {/* Daily predicted subtotal row */}
-                      <div className="flex justify-end pr-2 pt-1 pb-2">
-                        <div className="px-3 py-1 rounded-xl bg-violet-600/5 border border-violet-600/10 text-[9px] font-black font-mono text-violet-500 flex items-center gap-1.5">
-                          <span>Saldo do Final do Dia:</span>
-                          <strong>R$ {dayEndBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                });
-              })()}
+                            {/* Descrição column */}
+                            <td className="py-3 px-4 font-bold">
+                              {tx.descricao}
+                            </td>
+
+                            {/* Categoria column */}
+                            <td className="py-3 px-4">
+                              <span className="px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 text-[10px] font-bold">
+                                {tx.categoria}
+                              </span>
+                            </td>
+
+                            {/* Conta column */}
+                            <td className="py-3 px-4 font-bold text-slate-500 dark:text-slate-400">
+                              {accountLabel}
+                            </td>
+
+                            {/* Valor column */}
+                            <td className={`py-3 px-4 text-right font-mono font-black ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
+                              {isIncome ? '+' : '-'} R$ {tx.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            </td>
+
+                            {/* Ações column */}
+                            <td className="py-3 px-4 text-center">
+                              <button
+                                onClick={() => handleDeleteEntity(
+                                  isCard ? 'card-expenses' : isIncome ? 'income' : 'expenses',
+                                  tx.id
+                                )}
+                                className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded transition duration-200 cursor-pointer"
+                                title="Excluir transação"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ====================================================
             TAB: CARTÕES (Faturas, limites e pagamentos)

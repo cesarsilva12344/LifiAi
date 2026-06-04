@@ -74,7 +74,8 @@ export default function HomeDashboard({ data, onRefresh, theme = 'light' }: Home
   const [selectedDayStr, setSelectedDayStr] = useState<string | null>(null);
 
   // Period filter state for dashboard figures and calendar range highlight
-  const [timeFilter, setTimeFilter] = useState<'all' | 'week' | 'month' | 'year'>('month');
+  const [timeFilter, setTimeFilter] = useState<'all' | 'week' | 'month' | 'year' | 'custom-month'>('month');
+  const [filterMonthDate, setFilterMonthDate] = useState<Date>(new Date());
 
   // Active sub-management panel tab
   const [activeManagerTab, setActiveManagerTab] = useState<'categories' | 'accounts' | 'tags'>('categories');
@@ -109,6 +110,9 @@ export default function HomeDashboard({ data, onRefresh, theme = 'light' }: Home
       }
       if (timeFilter === 'month') {
         return itemDate >= startOfMonth && itemDate <= today;
+      }
+      if (timeFilter === 'custom-month') {
+        return itemDate.getMonth() === filterMonthDate.getMonth() && itemDate.getFullYear() === filterMonthDate.getFullYear();
       }
       if (timeFilter === 'year') {
         return itemDate >= startOfYear && itemDate <= today;
@@ -475,39 +479,84 @@ export default function HomeDashboard({ data, onRefresh, theme = 'light' }: Home
           <span className="text-[10px] font-mono text-purple-400 font-bold bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/10">
             {timeFilter === 'week' && 'Esta Semana'}
             {timeFilter === 'month' && 'Este Mês'}
+            {timeFilter === 'custom-month' && filterMonthDate.toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
             {timeFilter === 'year' && 'Este Ano'}
             {timeFilter === 'all' && 'Todo o Histórico'}
           </span>
         </div>
         
-        <div className={`flex gap-1 rounded-xl p-0.5 select-none text-[11px] border ${
-          theme === 'dark' ? 'bg-[#090a0d] border-[#1d202a]' : 'bg-slate-100 border-slate-200'
-        }`}>
-          {[
-            { id: 'all', label: 'Tudo' },
-            { id: 'week', label: 'Semana' },
-            { id: 'month', label: 'Mês' },
-            { id: 'year', label: 'Ano' },
-          ].map((item) => {
-            const isActive = timeFilter === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setTimeFilter(item.id as any)}
-                className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer select-none ${
-                  isActive 
-                    ? theme === 'dark' 
-                      ? 'bg-blue-600 text-white shadow-md' 
-                      : 'bg-white text-blue-600 shadow-sm border border-slate-200/50' 
-                    : theme === 'dark' 
-                      ? 'text-slate-400 hover:text-white' 
-                      : 'text-slate-500 hover:text-slate-800'
-                }`}
+        <div className="flex items-center gap-3">
+          {/* Month Navigator (Calendar Filter) */}
+          {(timeFilter === 'month' || timeFilter === 'custom-month') && (
+            <div className={`flex items-center gap-1 rounded-xl p-0.5 border text-xs select-none ${
+              theme === 'dark' ? 'bg-[#090a0d] border-[#1d202a]' : 'bg-slate-100 border-slate-200'
+            }`}>
+              <button 
+                type="button"
+                onClick={() => {
+                  const newDate = new Date(filterMonthDate.getFullYear(), filterMonthDate.getMonth() - 1, 1);
+                  setFilterMonthDate(newDate);
+                  setTimeFilter('custom-month');
+                }}
+                className="p-1 hover:bg-slate-500/15 rounded-lg cursor-pointer"
+                title="Mês Anterior"
               >
-                {item.label}
+                <ChevronLeft className="w-3.5 h-3.5 text-slate-400" />
               </button>
-            );
-          })}
+              
+              <span className="px-2 font-mono font-bold text-purple-500 uppercase text-[10px]">
+                {filterMonthDate.toLocaleString('pt-BR', { month: 'short', year: 'numeric' })}
+              </span>
+              
+              <button 
+                type="button"
+                onClick={() => {
+                  const newDate = new Date(filterMonthDate.getFullYear(), filterMonthDate.getMonth() + 1, 1);
+                  setFilterMonthDate(newDate);
+                  setTimeFilter('custom-month');
+                }}
+                className="p-1 hover:bg-slate-500/15 rounded-lg cursor-pointer"
+                title="Próximo Mês"
+              >
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            </div>
+          )}
+
+          <div className={`flex gap-1 rounded-xl p-0.5 select-none text-[11px] border ${
+            theme === 'dark' ? 'bg-[#090a0d] border-[#1d202a]' : 'bg-slate-100 border-slate-200'
+          }`}>
+            {[
+              { id: 'all', label: 'Tudo' },
+              { id: 'week', label: 'Semana' },
+              { id: 'month', label: 'Mês' },
+              { id: 'year', label: 'Ano' },
+            ].map((item) => {
+              const isActive = timeFilter === item.id || (item.id === 'month' && timeFilter === 'custom-month');
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    if (item.id === 'month') {
+                      setFilterMonthDate(new Date()); // reset to current month
+                    }
+                    setTimeFilter(item.id as any);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer select-none ${
+                    isActive 
+                      ? theme === 'dark' 
+                        ? 'bg-blue-600 text-white shadow-md' 
+                        : 'bg-white text-blue-600 shadow-sm border border-slate-200/50' 
+                      : theme === 'dark' 
+                        ? 'text-slate-400 hover:text-white' 
+                        : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

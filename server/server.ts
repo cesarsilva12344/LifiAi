@@ -35,7 +35,9 @@ import {
   createProject,
   createNote,
   createIdea,
-  createMemory
+  createMemory,
+  updateExpense,
+  updateIncome
 } from '../services/engine/index';
 import { runPersona, runRouter, runTranscribe, runOCR } from '../services/ai/core';
 import { Expense, Income, Task, Reminder, Goal, Habit, Project, Note, Idea, Memory, InboxItem } from '../src/types';
@@ -913,6 +915,214 @@ async function startServer() {
       const result = await createIncome(req.body, 'dashboard');
       if (result.success) res.json(result.data);
       else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // PATCH Manual Expenses / Income endpoints for direct editing
+  app.patch('/api/db/expenses/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await updateExpense(id, req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch('/api/db/income/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await updateIncome(id, req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // POST Spreadsheet CSV Batch Import
+  app.post('/api/db/import-csv', async (req, res) => {
+    try {
+      const { csvText } = req.body;
+      if (!csvText?.trim()) {
+        return res.status(400).json({ error: 'Conteúdo CSV vazio.' });
+      }
+
+      const lines = csvText.split(/\r?\n/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+      if (lines.length <= 1) {
+        return res.status(400).json({ error: 'CSV deve conter cabeçalho e dados.' });
+      }
+
+      const delimiter = lines[0].includes(';') ? ';' : ',';
+      const headers = lines[0].split(delimiter).map((h: string) => h.trim().replace(/^"|"$/g, ''));
+
+      const monthCols: { colIdx: number; monthStr: string; isStatus: boolean }[] = [];
+      const monthMap: { [key: string]: string } = {
+        'janeiro': '01', 'fevereiro': '02', 'março': '03', 'marco': '03',
+        'abril': '04', 'maio': '05', 'junho': '06', 'julho': '07',
+        'agosto': '08', 'setembro': '09', 'outubro': '10', 'novembro': '11', 'dezembro': '12'
+      };
+
+      for (let i = 3; i < headers.length; i++) {
+        const h = headers[i];
+        if (h.toLowerCase() === 'status') {
+          if (monthCols.length > 0) {
+            monthCols.push({ colIdx: i, monthStr: monthCols[monthCols.length - 1].monthStr, isStatus: true });
+          }
+        } else {
+          const cleaned = h.toLowerCase().replace(/\s+/g, '');
+          let monthNum = '';
+          let year = '2026';
+          
+          for (const key of Object.keys(monthMap)) {
+            if (cleaned.includes(key)) {
+              monthNum = monthMap[key];
+              const yearMatch = cleaned.match(/-(\d{2,4})$/) || cleaned.match(/-?\s*(\d{2,4})$/);
+              if (yearMatch) {
+                const y = yearMatch[1];
+                year = y.length === 2 ? '20' + y : y;
+              }
+              break;
+            }
+          }
+          
+          if (monthNum) {
+            monthCols.push({ colIdx: i, monthStr: `${year}-${monthNum}`, isStatus: false });
+          }
+        }
+      }
+
+      const db = readDatabase();
+      db.expenses = db.expenses || [];
+      db.income = db.income || [];
+      db.cardExpenses = db.cardExpenses || [];
+      db.creditCards = db.creditCards || [];
+
+      let importedExpensesCount = 0;
+      let importedCardExpensesCount = 0;
+      let importedIncomesCount = 0;
+
+      for (let r = 1; r < lines.length; r++) {
+        const row = lines[r].split(delimiter).map((cell: string) => cell.trim().replace(/^"|"$/g, ''));
+        if (row.length === 0 || !row[0]) continue;
+        
+        const label = row[0];
+        const labelLower = label.toLowerCase();
+        
+        if (labelLower.includes('total') || 
+            (labelLower.includes('pagamento') && labelLower !== 'pagamento') ||
+            labelLower.includes('pago') || 
+            labelLower.includes('saldo') || 
+            labelLower.includes('sobrando') || 
+            labelLower.includes('férias') ||
+            labelLower.includes('ferias')) {
+          continue;
+        }
+        
+        const isPagamentoRow = labelLower === 'pagamento';
+        const dueDay = parseInt(row[2]) || 10;
+        
+        const card = db.creditCards.find(c => 
+          c.nome.toLowerCase().includes(labelLower) || labelLower.includes(c.nome.toLowerCase())
+        );
+        
+        for (let m = 0; m < monthCols.length; m++) {
+          const colInfo = monthCols[m];
+          if (colInfo.isStatus) continue;
+          
+          const valStr = row[colInfo.colIdx];
+          if (!valStr || valStr === '-' || valStr === '0' || valStr === 'R$ 0,00' || valStr === '0,00') continue;
+          
+          let parsedVal = parseFloat(valStr.replace(/[^\d,.-]/g, '').replace(',', '.'));
+          if (isNaN(parsedVal) || parsedVal === 0) continue;
+          
+          parsedVal = Math.abs(parsedVal);
+          
+          const statusColInfo = monthCols.find(c => c.monthStr === colInfo.monthStr && c.isStatus && c.colIdx === colInfo.colIdx + 1);
+          const statusStr = statusColInfo ? row[statusColInfo.colIdx] : '';
+          const isPaid = statusStr.toLowerCase() === 'pago';
+          
+          const monthDateStr = colInfo.monthStr;
+          
+          if (isPagamentoRow) {
+            const incomeDate = `${monthDateStr}-05`;
+            const existingIdx = db.income.findIndex(inc => inc.descricao === 'Pagamento Mensal' && inc.data.startsWith(monthDateStr));
+            
+            if (existingIdx !== -1) {
+              db.income[existingIdx].valor = parsedVal;
+              db.income[existingIdx].quitada = isPaid;
+            } else {
+              db.income.push({
+                id: 'inc_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+                valor: parsedVal,
+                categoria: 'Salário',
+                descricao: 'Pagamento Mensal',
+                data: incomeDate,
+                quitada: isPaid,
+                conta_id: 'acc_3'
+              });
+            }
+            importedIncomesCount++;
+          } else if (card) {
+            const invoiceDate = `${monthDateStr}-${dueDay < 10 ? '0' + dueDay : dueDay}`;
+            const existingIdx = db.cardExpenses.findIndex(ce => ce.cartao_id === card.id && ce.data.startsWith(monthDateStr));
+            
+            if (existingIdx !== -1) {
+              db.cardExpenses[existingIdx].valor = parsedVal;
+              db.cardExpenses[existingIdx].quitada = isPaid;
+            } else {
+              db.cardExpenses.push({
+                id: 'cexp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+                cartao_id: card.id,
+                valor: parsedVal,
+                categoria: 'Fatura',
+                descricao: `Fatura ${card.nome}`,
+                data: invoiceDate,
+                parcelas: 1,
+                quitada: isPaid
+              });
+            }
+            importedCardExpensesCount++;
+          } else {
+            const expenseDate = `${monthDateStr}-10`;
+            let category = 'Geral';
+            if (labelLower.includes('casa') || labelLower.includes('parcela')) category = 'Moradia';
+            else if (labelLower.includes('tim') || labelLower.includes('celular')) category = 'Assinaturas';
+            else if (labelLower.includes('carro') || labelLower.includes('gasolina') || labelLower.includes('estacionamento')) category = 'Transporte';
+            else if (labelLower.includes('amorc') || labelLower.includes('torra')) category = 'Lazer';
+            
+            const existingIdx = db.expenses.findIndex(exp => exp.descricao.toLowerCase() === labelLower && exp.data.startsWith(monthDateStr));
+            
+            if (existingIdx !== -1) {
+              db.expenses[existingIdx].valor = parsedVal;
+              db.expenses[existingIdx].quitada = isPaid;
+            } else {
+              db.expenses.push({
+                id: 'exp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+                valor: parsedVal,
+                categoria: category,
+                descricao: label,
+                data: expenseDate,
+                quitada: isPaid,
+                conta_id: 'acc_3'
+              });
+            }
+            importedExpensesCount++;
+          }
+        }
+      }
+
+      writeDatabase(db);
+      res.json({
+        success: true,
+        importedExpenses: importedExpensesCount,
+        importedCardExpenses: importedCardExpensesCount,
+        importedIncomes: importedIncomesCount,
+        totalImported: importedExpensesCount + importedCardExpensesCount + importedIncomesCount
+      });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }

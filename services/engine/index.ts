@@ -26,6 +26,8 @@ export {
   updateProject,
   deleteEntity,
   executeFromIntent,
+  updateExpense,
+  updateIncome,
 } from './action';
 export type { ActionResult } from './action';
 

@@ -756,6 +756,88 @@ export async function updateProject(
   }
 }
 
+export async function updateExpense(
+  id: string,
+  data: Partial<Expense>
+): Promise<ActionResult<Expense>> {
+  try {
+    const db = readDatabase();
+    const idx = db.expenses.findIndex(e => e.id === id);
+    if (idx === -1) return { success: false, error: 'Despesa não encontrada' };
+    
+    const oldExpense = db.expenses[idx];
+    const newExpense = { ...oldExpense, ...data };
+    
+    // Handle account balance updates
+    if (oldExpense.conta_id || newExpense.conta_id) {
+      db.accounts = db.accounts || [];
+      
+      // Revert old expense effect if it was paid
+      if (oldExpense.quitada && oldExpense.conta_id) {
+        const oldAcc = db.accounts.find(a => a.id === oldExpense.conta_id);
+        if (oldAcc) {
+          oldAcc.saldo_atual = Number(oldAcc.saldo_atual) + Number(oldExpense.valor);
+        }
+      }
+      
+      // Apply new expense effect if it is paid
+      if (newExpense.quitada && newExpense.conta_id) {
+        const newAcc = db.accounts.find(a => a.id === newExpense.conta_id);
+        if (newAcc) {
+          newAcc.saldo_atual = Number(newAcc.saldo_atual) - Number(newExpense.valor);
+        }
+      }
+    }
+    
+    db.expenses[idx] = newExpense;
+    writeDatabase(db);
+    return { success: true, data: newExpense };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+export async function updateIncome(
+  id: string,
+  data: Partial<Income>
+): Promise<ActionResult<Income>> {
+  try {
+    const db = readDatabase();
+    const idx = db.income.findIndex(i => i.id === id);
+    if (idx === -1) return { success: false, error: 'Receita não encontrada' };
+    
+    const oldIncome = db.income[idx];
+    const newIncome = { ...oldIncome, ...data };
+    
+    // Handle account balance updates
+    if (oldIncome.conta_id || newIncome.conta_id) {
+      db.accounts = db.accounts || [];
+      
+      // Revert old income effect if it was paid
+      if (oldIncome.quitada && oldIncome.conta_id) {
+        const oldAcc = db.accounts.find(a => a.id === oldIncome.conta_id);
+        if (oldAcc) {
+          oldAcc.saldo_atual = Number(oldAcc.saldo_atual) - Number(oldIncome.valor);
+        }
+      }
+      
+      // Apply new income effect if it is paid
+      if (newIncome.quitada && newIncome.conta_id) {
+        const newAcc = db.accounts.find(a => a.id === newIncome.conta_id);
+        if (newAcc) {
+          newAcc.saldo_atual = Number(newAcc.saldo_atual) + Number(newIncome.valor);
+        }
+      }
+    }
+    
+    db.income[idx] = newIncome;
+    writeDatabase(db);
+    return { success: true, data: newIncome };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE
 // ─────────────────────────────────────────────────────────────────────────────

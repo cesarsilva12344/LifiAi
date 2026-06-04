@@ -835,7 +835,9 @@ __export(action_exports, {
   executeFromIntent: () => executeFromIntent,
   updateAiExtractionStatus: () => updateAiExtractionStatus,
   updateDecision: () => updateDecision,
+  updateExpense: () => updateExpense,
   updateGoalProgress: () => updateGoalProgress,
+  updateIncome: () => updateIncome,
   updateProject: () => updateProject,
   updateTask: () => updateTask
 });
@@ -1418,6 +1420,64 @@ async function updateProject(id, data) {
     db.projects[idx] = { ...db.projects[idx], ...data };
     writeDatabase(db);
     return { success: true, data: db.projects[idx] };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function updateExpense(id, data) {
+  try {
+    const db = readDatabase();
+    const idx = db.expenses.findIndex((e) => e.id === id);
+    if (idx === -1) return { success: false, error: "Despesa n\xE3o encontrada" };
+    const oldExpense = db.expenses[idx];
+    const newExpense = { ...oldExpense, ...data };
+    if (oldExpense.conta_id || newExpense.conta_id) {
+      db.accounts = db.accounts || [];
+      if (oldExpense.quitada && oldExpense.conta_id) {
+        const oldAcc = db.accounts.find((a) => a.id === oldExpense.conta_id);
+        if (oldAcc) {
+          oldAcc.saldo_atual = Number(oldAcc.saldo_atual) + Number(oldExpense.valor);
+        }
+      }
+      if (newExpense.quitada && newExpense.conta_id) {
+        const newAcc = db.accounts.find((a) => a.id === newExpense.conta_id);
+        if (newAcc) {
+          newAcc.saldo_atual = Number(newAcc.saldo_atual) - Number(newExpense.valor);
+        }
+      }
+    }
+    db.expenses[idx] = newExpense;
+    writeDatabase(db);
+    return { success: true, data: newExpense };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+async function updateIncome(id, data) {
+  try {
+    const db = readDatabase();
+    const idx = db.income.findIndex((i) => i.id === id);
+    if (idx === -1) return { success: false, error: "Receita n\xE3o encontrada" };
+    const oldIncome = db.income[idx];
+    const newIncome = { ...oldIncome, ...data };
+    if (oldIncome.conta_id || newIncome.conta_id) {
+      db.accounts = db.accounts || [];
+      if (oldIncome.quitada && oldIncome.conta_id) {
+        const oldAcc = db.accounts.find((a) => a.id === oldIncome.conta_id);
+        if (oldAcc) {
+          oldAcc.saldo_atual = Number(oldAcc.saldo_atual) - Number(oldIncome.valor);
+        }
+      }
+      if (newIncome.quitada && newIncome.conta_id) {
+        const newAcc = db.accounts.find((a) => a.id === newIncome.conta_id);
+        if (newAcc) {
+          newAcc.saldo_atual = Number(newAcc.saldo_atual) + Number(newIncome.valor);
+        }
+      }
+    }
+    db.income[idx] = newIncome;
+    writeDatabase(db);
+    return { success: true, data: newIncome };
   } catch (e) {
     return { success: false, error: e.message };
   }
@@ -3348,6 +3408,188 @@ async function startServer() {
       const result = await createIncome(req.body, "dashboard");
       if (result.success) res.json(result.data);
       else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.patch("/api/db/expenses/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await updateExpense(id, req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.patch("/api/db/income/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await updateIncome(id, req.body);
+      if (result.success) res.json(result.data);
+      else res.status(400).json({ error: result.error });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  app.post("/api/db/import-csv", async (req, res) => {
+    try {
+      const { csvText } = req.body;
+      if (!csvText?.trim()) {
+        return res.status(400).json({ error: "Conte\xFAdo CSV vazio." });
+      }
+      const lines = csvText.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+      if (lines.length <= 1) {
+        return res.status(400).json({ error: "CSV deve conter cabe\xE7alho e dados." });
+      }
+      const delimiter = lines[0].includes(";") ? ";" : ",";
+      const headers = lines[0].split(delimiter).map((h) => h.trim().replace(/^"|"$/g, ""));
+      const monthCols = [];
+      const monthMap = {
+        "janeiro": "01",
+        "fevereiro": "02",
+        "mar\xE7o": "03",
+        "marco": "03",
+        "abril": "04",
+        "maio": "05",
+        "junho": "06",
+        "julho": "07",
+        "agosto": "08",
+        "setembro": "09",
+        "outubro": "10",
+        "novembro": "11",
+        "dezembro": "12"
+      };
+      for (let i = 3; i < headers.length; i++) {
+        const h = headers[i];
+        if (h.toLowerCase() === "status") {
+          if (monthCols.length > 0) {
+            monthCols.push({ colIdx: i, monthStr: monthCols[monthCols.length - 1].monthStr, isStatus: true });
+          }
+        } else {
+          const cleaned = h.toLowerCase().replace(/\s+/g, "");
+          let monthNum = "";
+          let year = "2026";
+          for (const key of Object.keys(monthMap)) {
+            if (cleaned.includes(key)) {
+              monthNum = monthMap[key];
+              const yearMatch = cleaned.match(/-(\d{2,4})$/) || cleaned.match(/-?\s*(\d{2,4})$/);
+              if (yearMatch) {
+                const y = yearMatch[1];
+                year = y.length === 2 ? "20" + y : y;
+              }
+              break;
+            }
+          }
+          if (monthNum) {
+            monthCols.push({ colIdx: i, monthStr: `${year}-${monthNum}`, isStatus: false });
+          }
+        }
+      }
+      const db = readDatabase();
+      db.expenses = db.expenses || [];
+      db.income = db.income || [];
+      db.cardExpenses = db.cardExpenses || [];
+      db.creditCards = db.creditCards || [];
+      let importedExpensesCount = 0;
+      let importedCardExpensesCount = 0;
+      let importedIncomesCount = 0;
+      for (let r = 1; r < lines.length; r++) {
+        const row = lines[r].split(delimiter).map((cell) => cell.trim().replace(/^"|"$/g, ""));
+        if (row.length === 0 || !row[0]) continue;
+        const label = row[0];
+        const labelLower = label.toLowerCase();
+        if (labelLower.includes("total") || labelLower.includes("pagamento") && labelLower !== "pagamento" || labelLower.includes("pago") || labelLower.includes("saldo") || labelLower.includes("sobrando") || labelLower.includes("f\xE9rias") || labelLower.includes("ferias")) {
+          continue;
+        }
+        const isPagamentoRow = labelLower === "pagamento";
+        const dueDay = parseInt(row[2]) || 10;
+        const card = db.creditCards.find(
+          (c) => c.nome.toLowerCase().includes(labelLower) || labelLower.includes(c.nome.toLowerCase())
+        );
+        for (let m = 0; m < monthCols.length; m++) {
+          const colInfo = monthCols[m];
+          if (colInfo.isStatus) continue;
+          const valStr = row[colInfo.colIdx];
+          if (!valStr || valStr === "-" || valStr === "0" || valStr === "R$ 0,00" || valStr === "0,00") continue;
+          let parsedVal = parseFloat(valStr.replace(/[^\d,.-]/g, "").replace(",", "."));
+          if (isNaN(parsedVal) || parsedVal === 0) continue;
+          parsedVal = Math.abs(parsedVal);
+          const statusColInfo = monthCols.find((c) => c.monthStr === colInfo.monthStr && c.isStatus && c.colIdx === colInfo.colIdx + 1);
+          const statusStr = statusColInfo ? row[statusColInfo.colIdx] : "";
+          const isPaid = statusStr.toLowerCase() === "pago";
+          const monthDateStr = colInfo.monthStr;
+          if (isPagamentoRow) {
+            const incomeDate = `${monthDateStr}-05`;
+            const existingIdx = db.income.findIndex((inc) => inc.descricao === "Pagamento Mensal" && inc.data.startsWith(monthDateStr));
+            if (existingIdx !== -1) {
+              db.income[existingIdx].valor = parsedVal;
+              db.income[existingIdx].quitada = isPaid;
+            } else {
+              db.income.push({
+                id: "inc_" + Date.now() + "_" + Math.random().toString(36).slice(2, 5),
+                valor: parsedVal,
+                categoria: "Sal\xE1rio",
+                descricao: "Pagamento Mensal",
+                data: incomeDate,
+                quitada: isPaid,
+                conta_id: "acc_3"
+              });
+            }
+            importedIncomesCount++;
+          } else if (card) {
+            const invoiceDate = `${monthDateStr}-${dueDay < 10 ? "0" + dueDay : dueDay}`;
+            const existingIdx = db.cardExpenses.findIndex((ce) => ce.cartao_id === card.id && ce.data.startsWith(monthDateStr));
+            if (existingIdx !== -1) {
+              db.cardExpenses[existingIdx].valor = parsedVal;
+              db.cardExpenses[existingIdx].quitada = isPaid;
+            } else {
+              db.cardExpenses.push({
+                id: "cexp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 5),
+                cartao_id: card.id,
+                valor: parsedVal,
+                categoria: "Fatura",
+                descricao: `Fatura ${card.nome}`,
+                data: invoiceDate,
+                parcelas: 1,
+                quitada: isPaid
+              });
+            }
+            importedCardExpensesCount++;
+          } else {
+            const expenseDate = `${monthDateStr}-10`;
+            let category = "Geral";
+            if (labelLower.includes("casa") || labelLower.includes("parcela")) category = "Moradia";
+            else if (labelLower.includes("tim") || labelLower.includes("celular")) category = "Assinaturas";
+            else if (labelLower.includes("carro") || labelLower.includes("gasolina") || labelLower.includes("estacionamento")) category = "Transporte";
+            else if (labelLower.includes("amorc") || labelLower.includes("torra")) category = "Lazer";
+            const existingIdx = db.expenses.findIndex((exp) => exp.descricao.toLowerCase() === labelLower && exp.data.startsWith(monthDateStr));
+            if (existingIdx !== -1) {
+              db.expenses[existingIdx].valor = parsedVal;
+              db.expenses[existingIdx].quitada = isPaid;
+            } else {
+              db.expenses.push({
+                id: "exp_" + Date.now() + "_" + Math.random().toString(36).slice(2, 5),
+                valor: parsedVal,
+                categoria: category,
+                descricao: label,
+                data: expenseDate,
+                quitada: isPaid,
+                conta_id: "acc_3"
+              });
+            }
+            importedExpensesCount++;
+          }
+        }
+      }
+      writeDatabase(db);
+      res.json({
+        success: true,
+        importedExpenses: importedExpensesCount,
+        importedCardExpenses: importedCardExpensesCount,
+        importedIncomes: importedIncomesCount,
+        totalImported: importedExpensesCount + importedCardExpensesCount + importedIncomesCount
+      });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }
